@@ -23,29 +23,55 @@ body {
     width: 100%;
 }
 
-/* HUD */
-#hud {
+/* Leaderboard */
+#leaderboard {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 12px 16px;
+    min-width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 5;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.leaderboard-entry {
     display: flex;
     justify-content: space-between;
-    width: 100%;
-    padding: 0 30px;
-    height: 70px;
     align-items: center;
-    font-size: 24px;
+    font-size: 16px;
     font-weight: bold;
 }
 
-#hud-stats {
-    display: flex;
-    gap: 8px;
+.leaderboard-rank {
+    width: 24px;
+    color: #8E8E93;
+    font-size: 14px;
 }
 
-#hud-percent {
+.leaderboard-name {
+    flex-grow: 1;
+    margin: 0 10px;
+    white-space: nowrap;
+}
+
+.leaderboard-score {
+    width: 55px;
+    text-align: right;
     color: #333;
 }
 
-#hud-blocks {
-    color: #666;
+.highlighted-player {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin: -4px -8px;
 }
 
 /* Game Board Frame */
@@ -80,7 +106,10 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: white;
+    background-color: #e6e6e6;
+    background-image: url('assets/menu_bg.png');
+    background-size: cover;
+    background-position: center;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -90,13 +119,11 @@ body {
 
 #game-over-screen {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(255, 255, 255, 0.95);
-    padding: 40px;
-    border-radius: 20px;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(255, 255, 255, 0.2);
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -105,7 +132,7 @@ body {
 }
 
 #menu-title {
-    font-size: 38px;
+    font-size: 64px;
     font-weight: 800;
     /* heavy */
     color: #007AFF;
@@ -124,6 +151,9 @@ body {
 #color-picker {
     display: flex;
     gap: 16px;
+    flex-wrap: nowrap;
+    justify-content: center;
+    max-width: 100%;
 }
 
 .color-swatch {
@@ -144,18 +174,18 @@ body {
     display: flex;
     align-items: baseline;
     justify-content: center;
+    flex-wrap: nowrap;
+    white-space: nowrap;
     /* Black Outline on White Text */
     color: white;
     text-shadow:
-        1.5px 1.5px 0 #000,
-        -1.5px -1.5px 0 #000,
-        -1.5px 1.5px 0 #000,
-        1.5px -1.5px 0 #000;
+        1px 1px 0 #000,
+        -1px -1px 0 #000,
+        -1px 1px 0 #000,
+        1px -1px 0 #000;
 }
 
-.welcome-text,
-#username-input,
-#username-display {
+.welcome-text {
     font-size: 28px;
     font-weight: 900;
     /* heavy */
@@ -163,7 +193,7 @@ body {
 }
 
 .welcome-text:first-child {
-    margin-right: 15px;
+    margin-right: 5px;
 }
 
 #username-input {
@@ -173,18 +203,17 @@ body {
     text-align: center;
     color: white;
     padding: 0 2px;
-    /* Width adjusts via JS to match display span */
-    width: 140px;
+    font-size: 28px;
+    font-weight: 900;
+    font-family: inherit;
     text-shadow: inherit;
 }
 
-#username-input::placeholder {
-    color: transparent;
-}
-
-#username-display {
-    cursor: text;
-    padding: 0 2px;
+#username-input:focus {
+    background: transparent;
+    border: none;
+    outline: none;
+    box-shadow: none;
 }
 
 /* Buttons */
@@ -267,9 +296,20 @@ button:active {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
+    width: 500px;
+    aspect-ratio: 1 / 1;
+    max-width: 90vw;
+    max-height: 90vw;
     gap: 50px;
     zoom: 0.90;
-    /* Increased by 20% */
+    
+    background-color: rgba(200, 200, 200, 0.4);
+    padding: 40px;
+    border-radius: 30px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    backdrop-filter: blur(15px);
+    -webkit-backdrop-filter: blur(15px);
 }
 
 .hidden {
