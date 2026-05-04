@@ -247,8 +247,16 @@ function updateTerritoryCount() {
 
         const name = document.createElement('span');
         name.className = 'leaderboard-name';
-        name.textContent = index === 0 ? `👑 ${p.name}` : p.name;
         name.style.color = p.color;
+
+        if (index === 0) {
+            name.innerHTML = `<svg width="16" height="13" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="display:inline-block; vertical-align:-1px; margin-right:4px;">
+                <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.3));"/>
+            </svg>`;
+            name.appendChild(document.createTextNode(p.name));
+        } else {
+            name.textContent = p.name;
+        }
 
         const score = document.createElement('span');
         score.className = 'leaderboard-score';
@@ -608,12 +616,26 @@ function drawGame(progress) {
 
         // Draw Crown if King
         if (isKing) {
-            ctx.font = '20px sans-serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'bottom';
+            let cx = visualPos.x + CELL_SIZE / 2;
+            let cy = visualPos.y - 6; // base of the crown
+            let w = 14;
+            let h = 10;
+
+            ctx.fillStyle = '#FFCC00'; // Gold color
             ctx.shadowColor = 'rgba(0,0,0,0.5)';
             ctx.shadowBlur = 4;
-            ctx.fillText('👑', visualPos.x + CELL_SIZE / 2, visualPos.y - 2);
+
+            ctx.beginPath();
+            ctx.moveTo(cx - w/2, cy); // bottom left
+            ctx.lineTo(cx + w/2, cy); // bottom right
+            ctx.lineTo(cx + w/2 + 2, cy - h); // top right peak
+            ctx.lineTo(cx + w/4, cy - h/2 + 1); // right valley
+            ctx.lineTo(cx, cy - h - 3); // center peak
+            ctx.lineTo(cx - w/4, cy - h/2 + 1); // left valley
+            ctx.lineTo(cx - w/2 - 2, cy - h); // top left peak
+            ctx.closePath();
+
+            ctx.fill();
             ctx.shadowBlur = 0;
         }
     }
