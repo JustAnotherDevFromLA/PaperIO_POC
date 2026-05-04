@@ -1,0 +1,16 @@
+{
+  "name": "Paper.io POC",
+  "short_name": "PaperIO",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#e6e6e6",
+  "theme_color": "#e6e6e6",
+  "description": "A blazing fast HTML5 Paper.io prototype",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iIzU4NTZkNiIvPjxwb2x5Z29uIHBvaW50cz0iMjU2LDEwMCA0MDAsMjU2IDI1Niw0MTIgMTEyLDI1NiIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg==",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

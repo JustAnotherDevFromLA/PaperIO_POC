@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Paper.io POC</title>
+
+    <!-- SEO & Open Graph -->
+    <meta name="description"
+        content="Play the ultimate HTML5 Paper.io clone. Capture territory, avoid enemies, and dominate the board in this blazing fast web game.">
+    <meta property="og:title" content="Paper.io POC">
+    <meta property="og:description" content="A highly optimized, seamless web implementation of Paper.io.">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Paper.io POC">
+    <meta name="twitter:description" content="Capture the board in this blazing fast HTML5 game.">
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e6e6e6">
+</head>
+
+<body>
+    <div id="app-container">
+
+        <!-- HUD -->
+        <div id="hud" class="hidden">
+            <div id="hud-name">Player</div>
+            <div id="hud-stats">
+                <span id="hud-percent">0.00%</span>
+                <span id="hud-blocks">(0 / 2500)</span>
+            </div>
+        </div>
+
+        <!-- Game Board Frame -->
+        <div id="canvas-container">
+            <!-- Menu Screen -->
+            <div id="menu-screen">
+                <div class="modal-content-scale">
+                    <h1 id="menu-title">Paper.io POC</h1>
+
+                    <div id="welcome-container">
+                        <span class="welcome-text">Welcome</span>
+                        <input type="text" id="username-input" value="BoringBot">
+                        <span id="username-display" class="hidden"></span>
+                        <span class="welcome-text">!</span>
+                    </div>
+
+                    <div class="button-group">
+                        <button id="start-btn">Start Game</button>
+                        <button id="quit-btn" class="danger-btn">Quit</button>
+                    </div>
+
+                    <div id="color-picker">
+                        <div class="color-swatch selected" data-color="indigo" style="background-color: #5856D6;"></div>
+                        <div class="color-swatch" data-color="crimson" style="background-color: #DC143C;"></div>
+                        <div class="color-swatch" data-color="emerald" style="background-color: #50C878;"></div>
+                        <div class="color-swatch" data-color="amber" style="background-color: #FFBF00;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Over Screen -->
+            <div id="game-over-screen" class="hidden">
+                <div class="modal-content-scale">
+                    <h1 id="game-over-title">Game Over</h1>
+                    <p id="game-over-stats">Final Score: 0.00%</p>
+                    <div class="button-group">
+                        <button id="restart-btn">Restart</button>
+                        <button id="quit-to-menu-btn" class="secondary-btn">Quit to Menu</button>
+                        <button id="quit-game-btn" class="danger-btn">Quit Game</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Game Canvas -->
+            <canvas id="game-canvas" width="800" height="800" class="hidden"></canvas>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
+</body>
+
+</html>

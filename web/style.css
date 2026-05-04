@@ -1,0 +1,281 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+body {
+    background-color: #e6e6e6;
+    /* Color(white: 0.90) equivalent */
+    display: flex;
+    justify-content: center;
+    align-items: safe center;
+    min-height: 100dvh;
+    color: #333;
+    padding: 10px;
+}
+
+#app-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+/* HUD */
+#hud {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0 30px;
+    height: 70px;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+
+#hud-stats {
+    display: flex;
+    gap: 8px;
+}
+
+#hud-percent {
+    color: #333;
+}
+
+#hud-blocks {
+    color: #666;
+}
+
+/* Game Board Frame */
+#canvas-container {
+    position: relative;
+    /* Increase board size relative to window, remove 800px hard limit */
+    width: min(100vw - 20px, 100dvh - 100px);
+    height: min(100vw - 20px, 100dvh - 100px);
+    max-width: 100%;
+    max-height: 100%;
+    background-color: white;
+    /* Flush square as requested */
+    border-radius: 0;
+    box-shadow: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+}
+
+#game-canvas {
+    width: 100%;
+    height: 100%;
+    /* Keep pixel art crisp if needed, though we draw shapes */
+    image-rendering: pixelated;
+}
+
+/* Menus */
+#menu-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#game-over-screen {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: rgba(255, 255, 255, 0.95);
+    padding: 40px;
+    border-radius: 20px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 10;
+}
+
+#menu-title {
+    font-size: 38px;
+    font-weight: 800;
+    /* heavy */
+    color: #007AFF;
+    /* blue */
+}
+
+#menu-subtitle {
+    font-size: 19px;
+    font-weight: bold;
+    color: #8E8E93;
+    /* gray */
+    margin-bottom: 16px;
+}
+
+/* Color Picker */
+#color-picker {
+    display: flex;
+    gap: 16px;
+}
+
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.color-swatch.selected {
+    transform: scale(1.1);
+    border: 4px solid white;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+}
+
+/* Welcome Input */
+#welcome-container {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    /* Black Outline on White Text */
+    color: white;
+    text-shadow:
+        1.5px 1.5px 0 #000,
+        -1.5px -1.5px 0 #000,
+        -1.5px 1.5px 0 #000,
+        1.5px -1.5px 0 #000;
+}
+
+.welcome-text,
+#username-input,
+#username-display {
+    font-size: 28px;
+    font-weight: 900;
+    /* heavy */
+    font-family: inherit;
+}
+
+.welcome-text:first-child {
+    margin-right: 15px;
+}
+
+#username-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    text-align: center;
+    color: white;
+    padding: 0 2px;
+    /* Width adjusts via JS to match display span */
+    width: 140px;
+    text-shadow: inherit;
+}
+
+#username-input::placeholder {
+    color: transparent;
+}
+
+#username-display {
+    cursor: text;
+    padding: 0 2px;
+}
+
+/* Buttons */
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+}
+
+button {
+    width: 176px;
+    /* scaled down 20% from 220 */
+    padding: 12px 0;
+    font-size: 19px;
+    font-weight: bold;
+    color: white;
+    background-color: #007AFF;
+    /* blue default */
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+button:hover {
+    opacity: 0.9;
+}
+
+button:active {
+    transform: scale(0.95);
+}
+
+.danger-btn {
+    background-color: #FF3B30 !important;
+    /* red */
+}
+
+.secondary-btn {
+    background-color: #8E8E93 !important;
+    /* gray */
+}
+
+#restart-btn {
+    background-color: #007AFF;
+    /* make restart default color, like Swift */
+}
+
+/* Instructions */
+#how-to-play {
+    margin-top: 30px;
+    color: #8E8E93;
+    font-size: 16px;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.6;
+}
+
+#how-to-play p {
+    margin: 5px 0;
+}
+
+/* Game Over */
+#game-over-title {
+    font-size: 38px;
+    font-weight: 800;
+    color: #FF3B30;
+    /* red */
+}
+
+#game-over-stats {
+    font-size: 22px;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Utility */
+.modal-content-scale {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 50px;
+    zoom: 0.90;
+    /* Increased by 20% */
+}
+
+.hidden {
+    display: none !important;
+}
+
+.playing-cursor-hide {
+    cursor: none !important;
+}
