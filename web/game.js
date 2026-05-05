@@ -44,8 +44,10 @@ const COLORS = {
     red: '#FF3B30',
     green: '#34C759',
     yellow: '#FFCC00',
-    orange: '#FF9500',
+    pink: '#FF69B4',
+    cyan: '#32ADE6',
     purple: '#AF52DE',
+    orange: '#FF9500',
     gridLines: '#E5E5EA',
     pathOpacity: 'rgba(255, 255, 255, 0.4)'
 };
@@ -181,14 +183,30 @@ usernameInput.addEventListener("input", () => {
     updateInputWidth();
 });
 
+const customColorInput = document.getElementById("custom-color-input");
+
 colorSwatches.forEach(swatch => {
     swatch.addEventListener("click", () => {
         colorSwatches.forEach(s => s.classList.remove("selected"));
         swatch.classList.add("selected");
         selectedColorKey = swatch.dataset.color;
-        selectedColorHex = COLORS[selectedColorKey];
+        
+        if (selectedColorKey === "custom") {
+            selectedColorHex = customColorInput.value;
+        } else {
+            selectedColorHex = COLORS[selectedColorKey];
+        }
     });
 });
+
+if (customColorInput) {
+    customColorInput.addEventListener("input", (e) => {
+        if (selectedColorKey === "custom") {
+            selectedColorHex = e.target.value;
+        }
+        // Force the gradient background of the swatch to show the selected color? No, leave it rainbow!
+    });
+}
 
 startBtn.addEventListener("click", startGame);
 restartBtn.addEventListener("click", startGame);
@@ -1547,8 +1565,9 @@ function drawGame(progress) {
             crownSvg.setAttribute('height', ch);
         }
 
-        playerCrown.style.left = (cx - (cw / 2)) + "px";
-        playerCrown.style.top = (cy - (ch * 0.7)) + "px";
+        playerCrown.style.left = cx + "px";
+        playerCrown.style.top = cy + "px";
+        playerCrown.style.transform = "translate(-50%, -85%)";
     } else {
         playerCrown.style.display = "none";
     }

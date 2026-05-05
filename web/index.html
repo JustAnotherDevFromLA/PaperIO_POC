@@ -63,8 +63,10 @@
                         <div class="color-swatch" data-color="red" style="background-color: #FF3B30;"></div>
                         <div class="color-swatch" data-color="green" style="background-color: #34C759;"></div>
                         <div class="color-swatch" data-color="yellow" style="background-color: #FFCC00;"></div>
-                        <div class="color-swatch" data-color="orange" style="background-color: #FF9500;"></div>
-                        <div class="color-swatch" data-color="purple" style="background-color: #AF52DE;"></div>
+                        <div class="color-swatch" data-color="pink" style="background-color: #FF69B4;"></div>
+                        <div class="color-swatch custom-color" data-color="custom" style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); position: relative; overflow: hidden; border-radius: 50%;">
+                            <input type="color" id="custom-color-input" value="#AF52DE" style="position: absolute; top: -10px; left: -10px; width: 200%; height: 200%; opacity: 0; cursor: pointer;">
+                        </div>
                     </div>
                 </div>
             </div>
@@ -96,9 +98,9 @@
             <div id="confirm-modal" class="hidden">
                 <div class="modal-content-scale" style="max-width: 240px; padding: 20px;">
                     <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 20px;">Restart Game?</h2>
-                    <div style="display: flex; gap: 10px;">
-                        <button id="confirm-yes-btn" class="danger-btn" style="flex: 1; padding: 10px 0; font-size: 16px;">Restart</button>
-                        <button id="confirm-no-btn" class="secondary-btn" style="flex: 1; padding: 10px 0; font-size: 16px;">Cancel</button>
+                    <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
+                        <button id="confirm-yes-btn" class="danger-btn" style="width: 100%; padding: 10px 0; font-size: 16px;">Restart</button>
+                        <button id="confirm-no-btn" class="secondary-btn" style="width: 100%; padding: 10px 0; font-size: 16px;">Cancel</button>
                     </div>
                 </div>
             </div>
