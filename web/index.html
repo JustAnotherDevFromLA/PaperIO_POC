@@ -64,10 +64,18 @@
                         <div class="color-swatch" data-color="green" style="background-color: #34C759;"></div>
                         <div class="color-swatch" data-color="yellow" style="background-color: #FFCC00;"></div>
                         <div class="color-swatch" data-color="pink" style="background-color: #FF69B4;"></div>
-                        <div class="color-swatch custom-color" data-color="custom" style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); position: relative; overflow: hidden; border-radius: 50%;">
-                            <input type="color" id="custom-color-input" value="#AF52DE" style="position: absolute; top: -10px; left: -10px; width: 200%; height: 200%; opacity: 0; cursor: pointer;">
+                        <div class="color-swatch custom-color" data-color="custom" style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); position: relative; overflow: hidden;">
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Custom Color Modal -->
+            <div id="custom-color-modal" class="hidden">
+                <div class="modal-content-scale" style="background: white; padding: 20px; border-radius: 16px; display: flex; flex-direction: column; align-items: center;">
+                    <canvas id="color-wheel-canvas" width="200" height="200" style="border-radius: 50%; cursor: crosshair; touch-action: none;"></canvas>
+                    <div style="margin-top: 15px; width: 40px; height: 40px; border-radius: 8px; border: 2px solid #ccc;" id="color-wheel-preview"></div>
+                    <button id="color-wheel-confirm-btn" style="margin-top: 15px; width: 140px; font-size: 16px; padding: 10px 0;">Confirm</button>
                 </div>
             </div>
 

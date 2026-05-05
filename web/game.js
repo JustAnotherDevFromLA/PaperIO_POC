@@ -183,28 +183,126 @@ usernameInput.addEventListener("input", () => {
     updateInputWidth();
 });
 
-const customColorInput = document.getElementById("custom-color-input");
+const customColorModal = document.getElementById("custom-color-modal");
+const colorWheelCanvas = document.getElementById("color-wheel-canvas");
+const cwCtx = colorWheelCanvas ? colorWheelCanvas.getContext("2d") : null;
+const colorWheelPreview = document.getElementById("color-wheel-preview");
+const colorWheelConfirmBtn = document.getElementById("color-wheel-confirm-btn");
+
+// Draw Color Wheel
+if (cwCtx) {
+    let radius = colorWheelCanvas.width / 2;
+    let imageData = cwCtx.createImageData(colorWheelCanvas.width, colorWheelCanvas.height);
+    let data = imageData.data;
+    for (let y = 0; y < colorWheelCanvas.height; y++) {
+        for (let x = 0; x < colorWheelCanvas.width; x++) {
+            let dx = x - radius;
+            let dy = y - radius;
+            let distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance <= radius) {
+                let angle = Math.atan2(dy, dx);
+                let hue = (angle + Math.PI) / (2 * Math.PI) * 360;
+                let sat = (distance / radius) * 100;
+                let rgb = hslToRgb(hue / 360, sat / 100, 0.5);
+                let index = (y * colorWheelCanvas.width + x) * 4;
+                data[index] = rgb[0];
+                data[index + 1] = rgb[1];
+                data[index + 2] = rgb[2];
+                data[index + 3] = 255;
+            }
+        }
+    }
+    cwCtx.putImageData(imageData, 0, 0);
+}
+
+function hslToRgb(h, s, l) {
+    let r, g, b;
+    if (s == 0) { r = g = b = l; } else {
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+        let q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        let p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
 
 colorSwatches.forEach(swatch => {
     swatch.addEventListener("click", () => {
-        colorSwatches.forEach(s => s.classList.remove("selected"));
+        colorSwatches.forEach(s => {
+            s.classList.remove("selected");
+            s.style.borderColor = "";
+        });
         swatch.classList.add("selected");
         selectedColorKey = swatch.dataset.color;
         
         if (selectedColorKey === "custom") {
-            selectedColorHex = customColorInput.value;
+            if (!selectedColorHex || Object.values(COLORS).includes(selectedColorHex)) {
+                selectedColorHex = "#AF52DE"; // Default purple
+            }
+            colorWheelPreview.style.backgroundColor = selectedColorHex;
+            swatch.style.borderColor = selectedColorHex;
+            customColorModal.classList.remove("hidden");
         } else {
             selectedColorHex = COLORS[selectedColorKey];
         }
     });
 });
 
-if (customColorInput) {
-    customColorInput.addEventListener("input", (e) => {
-        if (selectedColorKey === "custom") {
-            selectedColorHex = e.target.value;
+function pickColor(e) {
+    if (!cwCtx) return;
+    const rect = colorWheelCanvas.getBoundingClientRect();
+    let x, y;
+    if (e.touches && e.touches.length > 0) {
+        x = e.touches[0].clientX - rect.left;
+        y = e.touches[0].clientY - rect.top;
+    } else {
+        x = e.clientX - rect.left;
+        y = e.clientY - rect.top;
+    }
+    let scaleX = colorWheelCanvas.width / rect.width;
+    let scaleY = colorWheelCanvas.height / rect.height;
+    x = Math.round(x * scaleX);
+    y = Math.round(y * scaleY);
+
+    let radius = colorWheelCanvas.width / 2;
+    let dx = x - radius;
+    let dy = y - radius;
+    if (Math.sqrt(dx * dx + dy * dy) <= radius) {
+        let pixel = cwCtx.getImageData(x, y, 1, 1).data;
+        if (pixel[3] > 0) {
+            let hex = "#" + ("000000" + ((pixel[0] << 16) | (pixel[1] << 8) | pixel[2]).toString(16)).slice(-6);
+            selectedColorHex = hex;
+            colorWheelPreview.style.backgroundColor = hex;
+            const customSwatch = document.querySelector('.custom-color');
+            if (customSwatch) customSwatch.style.borderColor = hex;
         }
-        // Force the gradient background of the swatch to show the selected color? No, leave it rainbow!
+    }
+}
+
+let isDraggingColor = false;
+if (colorWheelCanvas) {
+    colorWheelCanvas.addEventListener("mousedown", (e) => { isDraggingColor = true; pickColor(e); });
+    colorWheelCanvas.addEventListener("mousemove", (e) => { if (isDraggingColor) pickColor(e); });
+    window.addEventListener("mouseup", () => { isDraggingColor = false; });
+
+    colorWheelCanvas.addEventListener("touchstart", (e) => { isDraggingColor = true; pickColor(e); }, {passive: false});
+    colorWheelCanvas.addEventListener("touchmove", (e) => { if (isDraggingColor) { e.preventDefault(); pickColor(e); } }, {passive: false});
+    window.addEventListener("touchend", () => { isDraggingColor = false; });
+}
+
+if (colorWheelConfirmBtn) {
+    colorWheelConfirmBtn.addEventListener("click", () => {
+        customColorModal.classList.add("hidden");
+        startBtn.focus();
     });
 }
 
