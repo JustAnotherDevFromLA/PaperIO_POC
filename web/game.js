@@ -348,6 +348,10 @@ function getSafeSpawnPosition() {
 }
 
 function startGame() {
+    if (document.activeElement) {
+        document.activeElement.blur();
+    }
+    
     initAudio();
 
     if (winAnimationFrame) {
