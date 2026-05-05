@@ -1468,8 +1468,15 @@ function drawGame(progress) {
 
         ctx.save();
         ctx.fillStyle = e.color;
-        ctx.shadowColor = "rgba(0,0,0,0.5)";
-        ctx.shadowBlur = 5;
+        
+        if (grid[e.pos.x] && grid[e.pos.x][e.pos.y] === e.id) {
+            ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
+            ctx.shadowBlur = 12;
+        } else {
+            ctx.shadowColor = "rgba(0,0,0,0.5)";
+            ctx.shadowBlur = 5;
+        }
+        
         ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         ctx.shadowBlur = 0;
         
