@@ -119,7 +119,7 @@ let isPaused = false;
 function togglePause() {
     if (!isPlaying) return;
     isPaused = !isPaused;
-    pauseBtn.textContent = isPaused ? "▶️ Resume" : "⏸ Pause";
+    pauseBtn.textContent = isPaused ? "Resume" : "Pause";
 }
 pauseBtn.addEventListener("click", togglePause);
 function resizeFxCanvas() {
@@ -425,7 +425,7 @@ function startGame() {
     canvas.classList.remove("hidden");
     pauseBtn.classList.remove("hidden");
     isPaused = false;
-    pauseBtn.textContent = "⏸ Pause";
+    pauseBtn.textContent = "Pause";
 
     isPlaying = true;
     document.body.classList.add("playing-cursor-hide");
