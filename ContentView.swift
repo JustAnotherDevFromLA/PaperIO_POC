@@ -193,12 +193,6 @@ struct ContentView: View {
                         .font(.system(size: 50, weight: .bold))
                         .foregroundColor(isWin ? .green : .red)
                     
-                    if isWin {
-                        Text("100% Territory Captured!")
-                            .font(.title3)
-                            .foregroundColor(.gray)
-                            .padding(.bottom, 10)
-                    }
                     
                     Button("Restart") {
                         gameScene.playerColorOption = selectedColor

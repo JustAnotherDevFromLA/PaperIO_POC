@@ -1,19 +1,46 @@
+const CACHE_NAME = 'paper-io-v39';
+const ASSETS = [
+    './',
+    './index.html',
+    './style.css',
+    './game.js',
+    './manifest.json',
+    './assets/menu_bg.png',
+    './assets/fireworks.mp3'
+];
+
 self.addEventListener('install', (e) => {
-  self.skipWaiting(); // Force the waiting service worker to become the active service worker.
+    self.skipWaiting();
+    e.waitUntil(
+        caches.open(CACHE_NAME).then(cache => {
+            return cache.addAll(ASSETS);
+        })
+    );
 });
 
 self.addEventListener('activate', (e) => {
-  // Obliterate all caches immediately upon activation
-  e.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => caches.delete(cacheName))
-      );
-    })
-  );
+    e.waitUntil(
+        caches.keys().then(keys => {
+            return Promise.all(
+                keys.map(key => {
+                    if (key !== CACHE_NAME) {
+                        return caches.delete(key);
+                    }
+                })
+            );
+        })
+    );
 });
 
 self.addEventListener('fetch', (e) => {
-  // Bypass all cache, force network fetch
-  e.respondWith(fetch(e.request));
+    e.respondWith(
+        caches.match(e.request).then(response => {
+            return response || fetch(e.request).then(fetchRes => {
+                return caches.open(CACHE_NAME).then(cache => {
+                    cache.put(e.request.url, fetchRes.clone());
+                    return fetchRes;
+                });
+            });
+        })
+    );
 });

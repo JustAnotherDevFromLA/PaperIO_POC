@@ -4,8 +4,8 @@ const leaderboard = document.getElementById('leaderboard');
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-const gameOverStats = document.getElementById('game-over-stats');
-
+const gameOverTitle = document.getElementById('game-over-title');
+const gameOverLeaderboard = document.getElementById('game-over-leaderboard');
 const colorSwatches = document.querySelectorAll('.color-swatch');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
@@ -13,9 +13,30 @@ const quitBtn = document.getElementById('quit-btn');
 const quitToMenuBtn = document.getElementById('quit-to-menu-btn');
 const quitGameBtn = document.getElementById('quit-game-btn');
 
+let gridCanvas = null;
+function initGridCache() {
+    gridCanvas = document.createElement('canvas');
+    gridCanvas.width = canvas.width;
+    gridCanvas.height = canvas.height;
+    let gCtx = gridCanvas.getContext('2d');
+    
+    gCtx.strokeStyle = '#e0e0e0';
+    gCtx.lineWidth = 1;
+    gCtx.beginPath();
+    for (let x = 0; x <= gridCanvas.width; x += CELL_SIZE) {
+        gCtx.moveTo(x, 0);
+        gCtx.lineTo(x, gridCanvas.height);
+    }
+    for (let y = 0; y <= gridCanvas.height; y += CELL_SIZE) {
+        gCtx.moveTo(0, y);
+        gCtx.lineTo(gridCanvas.width, y);
+    }
+    gCtx.stroke();
+}
+
 const usernameInput = document.getElementById('username-input');
 const widthCalcSpan = document.getElementById('width-calc-span');
-const gameOverTitle = document.getElementById('game-over-title');
+
 
 // --- Colors ---
 const COLORS = {
@@ -35,9 +56,8 @@ const CELL_SIZE = 16; // 800 / 50
 const TOTAL_CELLS = GRID_SIZE * GRID_SIZE;
 
 let isPlaying = false;
-let selectedColorKey = 'blue';
+let selectedColorKey = "blue";
 let selectedColorHex = COLORS.blue;
-let dummyBots = [];
 
 function generateFunnyName(takenNames = []) {
     const adjectives = ["Neon", "Cyber", "Quantum", "Plasma", "Toxic", "Radical", "Hyper", "Sonic", "Lunar", "Solar", "Cosmic", "Ghost", "Ninja", "Pixel", "Retro", "Savage", "Spicy", "Salty", "Mega", "Ultra", "Epic", "Dark", "Shadow", "Iron", "Gold", "Magic", "Sneaky", "Crazy", "Silly", "Cool", "Hot", "Icy"];
@@ -53,23 +73,17 @@ function generateFunnyName(takenNames = []) {
         const formatRoll = Math.random();
 
         if (formatRoll < 0.2) {
-            // 20% chance: Single Noun
             name = noun;
         } else if (formatRoll < 0.35) {
-            // 15% chance: Single Adjective
             name = adj;
         } else if (formatRoll < 0.5) {
-            // 15% chance: Noun + Suffix
             name = `${noun}${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
         } else {
-            // 50% chance: Adj + Noun
             name = `${adj}${noun}`;
-            // 30% chance to add a gaming suffix to the compound
             if (Math.random() > 0.7) {
                 name = `${name}${suffixes[Math.floor(Math.random() * suffixes.length)]}`;
             }
         }
-
         name = name.substring(0, 16);
         attempts++;
     } while (takenNames.includes(name) && attempts < 50);
@@ -79,174 +93,393 @@ function generateFunnyName(takenNames = []) {
 
 let playerName = generateFunnyName();
 let hasModifiedName = false;
+let grid = [];
 
-let grid = []; // 2D array: 0=empty, 1=player1
-let playerPos = { x: 25, y: 25 };
-let visualPos = { x: 25 * CELL_SIZE, y: 25 * CELL_SIZE };
-let currentDir = { dx: 0, dy: 1 };
-let nextDir = { dx: 0, dy: 1 };
-let path = [];
-let territoryCount = 0;
-let collisionCell = null;
-let isKing = false;
+
+
+let entities = [];
+let idCounter = 1;
+let kingId = null;
+
+let particles = [];
+let fireworkTimer = 0;
+let isWon = false;
+let winAnimationFrame = null;
 
 let lastTime = 0;
 let moveTimer = 0;
 const moveInterval = 100; // ms per grid step
 
+const playerCrown = document.getElementById("player-crown");
+const fxCanvas = document.getElementById("fx-canvas");
+const fxCtx = fxCanvas.getContext("2d");
+function resizeFxCanvas() {
+    fxCanvas.width = window.innerWidth;
+    fxCanvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resizeFxCanvas);
+resizeFxCanvas();
+
 // --- Menu Logic ---
 function updateInputWidth() {
-    widthCalcSpan.textContent = usernameInput.value || ' ';
-    // The span is absolute & hidden, we just read its width
-    usernameInput.style.width = widthCalcSpan.offsetWidth + 'px';
+    widthCalcSpan.textContent = usernameInput.value || " ";
+    usernameInput.style.width = widthCalcSpan.offsetWidth + "px";
 }
-
 usernameInput.value = playerName;
 updateInputWidth();
 
 let isIntentionalFocus = false;
-
 function clearDefaultName() {
     isIntentionalFocus = true;
     if (!hasModifiedName) {
-        usernameInput.value = '';
-        playerName = '';
+        usernameInput.value = "";
+        playerName = "";
         updateInputWidth();
     }
 }
-
-usernameInput.addEventListener('mousedown', clearDefaultName);
-usernameInput.addEventListener('touchstart', clearDefaultName, {passive: true});
-
-usernameInput.addEventListener('focus', () => {
-    if (!isIntentionalFocus) {
-        usernameInput.blur();
-    }
-    isIntentionalFocus = false; // Reset for next interaction
+usernameInput.addEventListener("mousedown", clearDefaultName);
+usernameInput.addEventListener("touchstart", clearDefaultName, { passive: true });
+usernameInput.addEventListener("focus", () => {
+    if (!isIntentionalFocus) usernameInput.blur();
+    isIntentionalFocus = false;
 });
-
-usernameInput.addEventListener('input', () => {
+usernameInput.addEventListener("input", () => {
     hasModifiedName = true;
     playerName = usernameInput.value.trim();
     updateInputWidth();
 });
 
-// Color Selection
 colorSwatches.forEach(swatch => {
-    swatch.addEventListener('click', () => {
-        colorSwatches.forEach(s => s.classList.remove('selected'));
-        swatch.classList.add('selected');
+    swatch.addEventListener("click", () => {
+        colorSwatches.forEach(s => s.classList.remove("selected"));
+        swatch.classList.add("selected");
         selectedColorKey = swatch.dataset.color;
         selectedColorHex = COLORS[selectedColorKey];
     });
 });
 
-// Start / Restart Buttons
-startBtn.addEventListener('click', startGame);
-restartBtn.addEventListener('click', startGame);
+startBtn.addEventListener("click", startGame);
+restartBtn.addEventListener("click", startGame);
 
 function closeApp() {
-    window.open('', '_self', '');
+    window.open("", "_self", "");
     window.close();
-    window.location.href = "about:blank"; // Fallback
+    window.location.href = "about:blank";
 }
+quitBtn.addEventListener("click", closeApp);
+quitGameBtn.addEventListener("click", closeApp);
 
-quitBtn.addEventListener('click', closeApp);
-quitGameBtn.addEventListener('click', closeApp);
-
-quitToMenuBtn.addEventListener('click', () => {
-    gameOverScreen.classList.add('hidden');
-    menuScreen.classList.remove('hidden');
-    canvas.classList.add('hidden');
-    leaderboard.classList.add('hidden');
+quitToMenuBtn.addEventListener("click", () => {
+    gameOverScreen.classList.add("hidden");
+    menuScreen.classList.remove("hidden");
+    canvas.classList.add("hidden");
+    leaderboard.classList.add("hidden");
 });
 
+let actx = null;
+function initAudio() {
+    if (!actx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) actx = new AudioCtx();
+    }
+    if (actx && actx.state === 'suspended') {
+        actx.resume();
+    }
+}
+function playHitSound() {
+    if (!actx) return;
+
+    const time = actx.currentTime;
+
+    // 1. White Noise Burst (The crisp high-end "tsch")
+    const bufferSize = actx.sampleRate * 0.1; // 100ms
+    const buffer = actx.createBuffer(1, bufferSize, actx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+    }
+    const noise = actx.createBufferSource();
+    noise.buffer = buffer;
+
+    const noiseFilter = actx.createBiquadFilter();
+    noiseFilter.type = 'highpass';
+    noiseFilter.frequency.value = 4000; // Keep only the sharp high frequencies
+
+    const noiseGain = actx.createGain();
+    noiseGain.gain.setValueAtTime(0.4, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, time + 0.08); // Ultra-fast decay
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(actx.destination);
+
+    // 2. Punch Transient (The physical "thwack")
+    const osc = actx.createOscillator();
+    const oscGain = actx.createGain();
+    
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(800, time);
+    osc.frequency.exponentialRampToValueAtTime(50, time + 0.05); // Fast pitch drop
+
+    oscGain.gain.setValueAtTime(0.5, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, time + 0.08);
+
+    osc.connect(oscGain);
+    oscGain.connect(actx.destination);
+
+    noise.start(time);
+    osc.start(time);
+    
+    noise.stop(time + 0.1);
+    osc.stop(time + 0.1);
+}
+function playTurnSound() {
+    if (!actx) return;
+
+    const osc = actx.createOscillator();
+    const gainNode = actx.createGain();
+
+    osc.type = 'sine';
+    // A subtle high pitched pop/tick
+    osc.frequency.setValueAtTime(800, actx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(400, actx.currentTime + 0.05);
+
+    // Subtle background pop/tick volume
+    gainNode.gain.setValueAtTime(0.12, actx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.05);
+
+    osc.connect(gainNode);
+    gainNode.connect(actx.destination);
+
+    osc.start();
+    osc.stop(actx.currentTime + 0.05);
+}
+function playFireworkSound() {
+    if (!actx) return;
+    
+    // 500ms to 1000ms randomized buffer delay
+    const delay = 0.5 + (Math.random() * 0.5);
+    const burstTime = actx.currentTime + delay;
+    
+    // 1. The Soft Boom (Low-passed noise)
+    const bufferSize = actx.sampleRate * 0.8;
+    const buffer = actx.createBuffer(1, bufferSize, actx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0; i<bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.4;
+    
+    const noise = actx.createBufferSource();
+    noise.buffer = buffer;
+    
+    const filter = actx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(800 + Math.random() * 200, burstTime);
+    filter.frequency.exponentialRampToValueAtTime(100, burstTime + 0.4);
+    
+    const noiseGain = actx.createGain();
+    noiseGain.gain.setValueAtTime(0, burstTime);
+    noiseGain.gain.linearRampToValueAtTime(0.2, burstTime + 0.05);
+    noiseGain.gain.exponentialRampToValueAtTime(0.01, burstTime + 0.8);
+    
+    noise.connect(filter);
+    filter.connect(noiseGain);
+    noiseGain.connect(actx.destination);
+    noise.start(burstTime);
+    noise.stop(burstTime + 0.9);
+    
+    // 2. Soft Low Thud (for subtle physical impact)
+    const osc = actx.createOscillator();
+    const oscGain = actx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(120, burstTime);
+    osc.frequency.exponentialRampToValueAtTime(30, burstTime + 0.3);
+    
+    oscGain.gain.setValueAtTime(0, burstTime);
+    oscGain.gain.linearRampToValueAtTime(0.3, burstTime + 0.05);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, burstTime + 0.4);
+    
+    osc.connect(oscGain);
+    oscGain.connect(actx.destination);
+    osc.start(burstTime);
+    osc.stop(burstTime + 0.5);
+}
+
 // --- Core Game Logic ---
+function getSafeSpawnPosition() {
+    let attempts = 0;
+    while(attempts < 200) {
+        let bx = Math.floor(Math.random() * 40) + 5;
+        let by = Math.floor(Math.random() * 40) + 5;
+        let safe = true;
+        // Check 5x5 area around spawn to ensure it's completely empty
+        for(let dx=-2; dx<=2; dx++) {
+            for(let dy=-2; dy<=2; dy++) {
+                if(grid[bx+dx] && grid[bx+dx][by+dy] !== 0) {
+                    safe = false; break;
+                }
+            }
+            if(!safe) break;
+        }
+        
+        if (safe) {
+            for (let e of entities) {
+                if (!e.isDead) {
+                    let dist = Math.abs(bx - e.pos.x) + Math.abs(by - e.pos.y);
+                    if (dist < 20) {
+                        safe = false;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(safe) return {x: bx, y: by};
+        attempts++;
+    }
+    return null; // No safe space found
+}
+
 function startGame() {
     initAudio();
 
-    // Reset State
-    grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
-    playerPos = { x: 25, y: 25 };
-    visualPos = { x: playerPos.x * CELL_SIZE, y: playerPos.y * CELL_SIZE };
-    currentDir = { dx: 0, dy: 1 };
-    nextDir = { dx: 0, dy: 1 };
-    path = [];
-    territoryCount = 0;
-    collisionCell = null;
-    isKing = false;
+    if (winAnimationFrame) {
+        cancelAnimationFrame(winAnimationFrame);
+        winAnimationFrame = null;
+    }
+    isWon = false;
+    particles = [];
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
 
-    // Generate dummy bots for the leaderboard BEFORE updating territory count
+    grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
+    entities = [];
+    idCounter = 1;
+
+    // Create player
+    let playerSpawn = {x: Math.floor(Math.random() * 40) + 5, y: Math.floor(Math.random() * 40) + 5};
+    entities.push({
+        id: idCounter++,
+        name: playerName || "Player",
+        isReal: true,
+        color: selectedColorHex,
+        pos: {x: playerSpawn.x, y: playerSpawn.y},
+        visualPos: {x: playerSpawn.x * CELL_SIZE, y: playerSpawn.y * CELL_SIZE},
+        currentDir: {dx: 0, dy: 1},
+        nextDir: {dx: 0, dy: 1},
+        path: [],
+        territoryCount: 0,
+        killCount: 0,
+        isDead: false,
+        collisionCell: null
+    });
+
+    // Create Bots
     const availableColors = Object.values(COLORS).filter(c => c !== selectedColorHex && c !== COLORS.gridLines && c !== COLORS.pathOpacity);
-    dummyBots = [];
     let takenNames = [playerName || "Player"];
-    for (let i = 0; i < 4; i++) {
+    for(let i=0; i<4; i++) {
         let botName = generateFunnyName(takenNames);
         takenNames.push(botName);
-        dummyBots.push({
+        let spawn = getSafeSpawnPosition();
+        if(!spawn) spawn = {x: Math.floor(Math.random() * 40) + 5, y: Math.floor(Math.random() * 40) + 5}; // Fallback for start game
+        
+        entities.push({
+            id: idCounter++,
             name: botName,
+            isReal: false,
             color: availableColors[i % availableColors.length],
-            percent: (Math.random() * 8 + 2) // Random static territory between 2% and 10%
+            pos: {x: spawn.x, y: spawn.y},
+            visualPos: {x: spawn.x * CELL_SIZE, y: spawn.y * CELL_SIZE},
+            currentDir: {dx: 0, dy: 1},
+            nextDir: {dx: 0, dy: 1},
+            path: [],
+            territoryCount: 0,
+            killCount: 0,
+            isDead: false,
+            collisionCell: null,
+            state: "WANDER",
+            framesInState: 0
         });
     }
 
-    // Create initial 3x3 base
-    for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-            grid[playerPos.x + dx][playerPos.y + dy] = 1;
+    // Initial bases
+    entities.forEach(e => {
+        for(let dx=-1; dx<=1; dx++) {
+            for(let dy=-1; dy<=1; dy++) {
+                grid[e.pos.x + dx][e.pos.y + dy] = e.id;
+            }
         }
-    }
+    });
+    
     updateTerritoryCount();
 
-    // UI Updates
-    menuScreen.classList.add('hidden');
-    gameOverScreen.classList.add('hidden');
-
-    leaderboard.classList.remove('hidden');
-    canvas.classList.remove('hidden');
+    menuScreen.classList.add("hidden");
+    gameOverScreen.classList.add("hidden");
+    leaderboard.classList.remove("hidden");
+    canvas.classList.remove("hidden");
 
     isPlaying = true;
-    document.body.classList.add('playing-cursor-hide');
+    document.body.classList.add("playing-cursor-hide");
     lastTime = performance.now();
     requestAnimationFrame(gameLoop);
 }
 
 function updateTerritoryCount() {
-    territoryCount = 0;
+    let entityMap = {};
+    for (let e of entities) {
+        e.territoryCount = 0;
+        entityMap[e.id] = e;
+    }
     for (let x = 0; x < GRID_SIZE; x++) {
         for (let y = 0; y < GRID_SIZE; y++) {
-            if (grid[x][y] === 1) territoryCount++;
+            let id = grid[x][y];
+            if (id > 0 && entityMap[id]) {
+                entityMap[id].territoryCount++;
+            }
         }
     }
-    const percent = ((territoryCount / TOTAL_CELLS) * 100);
-
-    // Build player array
-    let players = [
-        { name: playerName || "Player", color: selectedColorHex, percent: percent, isReal: true },
-        ...dummyBots
-    ];
-
-    // Sort descending
-    players.sort((a, b) => b.percent - a.percent);
-
-    // Check if real player is 1st
-    isKing = players[0].isReal;
-
-    // Render Leaderboard
-    leaderboard.innerHTML = '';
-    players.forEach((p, index) => {
-        const entry = document.createElement('div');
-        entry.className = 'leaderboard-entry';
-        if (p.isReal) {
-            entry.classList.add('highlighted-player');
+    
+    let players = entities.map(e => ({
+        id: e.id,
+        name: e.name,
+        color: e.color,
+        percent: (e.territoryCount / TOTAL_CELLS) * 100,
+        killCount: e.killCount || 0,
+        isReal: e.isReal,
+        isDead: e.isDead,
+        respawnTimer: e.respawnTimer || 0
+    }));
+    players.sort((a, b) => {
+        if (Math.abs(b.percent - a.percent) > 0.001) {
+            return b.percent - a.percent;
         }
+        return a.respawnTimer - b.respawnTimer;
+    });
 
-        const rank = document.createElement('span');
-        rank.className = 'leaderboard-rank';
+    if (players.length > 0) {
+        kingId = players[0].id;
+    } else {
+        kingId = null;
+    }
+
+    leaderboard.innerHTML = "";
+    const title = document.createElement("div");
+    title.textContent = "Leaderboard";
+    title.style.fontWeight = "900";
+    title.style.marginBottom = "8px";
+    title.style.textAlign = "center";
+    title.style.borderBottom = "1px solid rgba(0,0,0,0.1)";
+    title.style.paddingBottom = "4px";
+    leaderboard.appendChild(title);
+
+    players.forEach((p, index) => {
+        const entry = document.createElement("div");
+        entry.className = "leaderboard-entry";
+        if (p.isReal) entry.classList.add("highlighted-player");
+
+        const rank = document.createElement("span");
+        rank.className = "leaderboard-rank";
         rank.textContent = `#${index + 1}`;
 
-        const name = document.createElement('span');
-        name.className = 'leaderboard-name';
+        const name = document.createElement("span");
+        name.className = "leaderboard-name";
         name.style.color = p.color;
 
         if (index === 0) {
@@ -258,9 +491,30 @@ function updateTerritoryCount() {
             name.textContent = p.name;
         }
 
-        const score = document.createElement('span');
-        score.className = 'leaderboard-score';
-        score.textContent = `${p.percent.toFixed(2)}%`;
+        if (p.isDead) {
+            if (isPlaying) {
+                name.innerHTML = `<span style="text-decoration: line-through; text-decoration-color: black; opacity: 0.5;">${name.innerHTML}</span>`;
+                const timer = document.createElement("span");
+                timer.style.marginLeft = "6px";
+                timer.style.fontSize = "0.9em";
+                timer.style.color = "#000";
+                timer.style.display = "inline-block";
+                timer.style.width = "28px";
+                timer.style.textAlign = "left";
+                timer.style.fontVariantNumeric = "tabular-nums";
+                timer.id = `timer-${p.id}`;
+                timer.textContent = `${Math.ceil(p.respawnTimer)}s`;
+                name.appendChild(timer);
+            } else {
+                name.style.opacity = "0.5";
+            }
+        }
+
+        const score = document.createElement("span");
+        score.className = "leaderboard-score";
+        score.style.width = "auto";
+        score.style.whiteSpace = "nowrap";
+        score.innerHTML = `<span style="color: #8E8E93; font-size: 0.9em;">⚔️ ${p.killCount}</span> &nbsp;|&nbsp; ${Math.round(p.percent)}%`;
 
         entry.appendChild(rank);
         entry.appendChild(name);
@@ -268,244 +522,724 @@ function updateTerritoryCount() {
         leaderboard.appendChild(entry);
     });
 
-    if (territoryCount >= TOTAL_CELLS && isPlaying) {
-        die(true);
-    }
+    entities.forEach(e => {
+        if (!e.isDead && isPlaying) {
+            let percent = ((e.territoryCount / TOTAL_CELLS) * 100);
+            if (percent >= 100) {
+                die(e.isReal);
+            }
+        }
+    });
 }
 
-let actx = null;
-
-function initAudio() {
-    if (!actx) {
-        const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) actx = new AudioCtx();
-    }
-    if (actx && actx.state === 'suspended') {
-        actx.resume();
-    }
-}
-
-function playHitSound() {
-    if (!actx) return;
+function killEntity(target, killer) {
+    if(target.isDead) return;
+    target.isDead = true;
     
-    const osc = actx.createOscillator();
-    const gainNode = actx.createGain();
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(150, actx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(40, actx.currentTime + 0.3);
-
-    gainNode.gain.setValueAtTime(0.28, actx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.3);
-
-    osc.connect(gainNode);
-    gainNode.connect(actx.destination);
-
-    osc.start();
-    osc.stop(actx.currentTime + 0.3);
-}
-
-function playTurnSound() {
-    if (!actx) return;
-    
-    const osc = actx.createOscillator();
-    const gainNode = actx.createGain();
-
-    osc.type = 'sine';
-    // A subtle high pitched pop/tick
-    osc.frequency.setValueAtTime(800, actx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(400, actx.currentTime + 0.05);
-
-    // Uniform volume matching the hit sound
-    gainNode.gain.setValueAtTime(0.28, actx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.05);
-
-    osc.connect(gainNode);
-    gainNode.connect(actx.destination);
-
-    osc.start();
-    osc.stop(actx.currentTime + 0.05);
-}
-
-function die(isWin = false) {
-    isPlaying = false;
-    document.body.classList.remove('playing-cursor-hide');
-    gameOverScreen.classList.remove('hidden');
-
-    if (isWin) {
-        gameOverTitle.textContent = "You Win!";
-        gameOverTitle.style.color = "#34C759"; // green
-    } else {
-        playHitSound();
-        gameOverTitle.textContent = "Game Over!";
-        gameOverTitle.style.color = "#FF3B30"; // red
+    if (!target.collisionCell) {
+        target.collisionCell = {x: target.pos.x, y: target.pos.y};
     }
-
-    const percent = ((territoryCount / TOTAL_CELLS) * 100).toFixed(2);
-    gameOverStats.textContent = isWin ? "100% Territory Captured!" : `Final Score: ${percent}%`;
+    
+    target.path = [];
+    for(let x=0; x<GRID_SIZE; x++){
+        for(let y=0; y<GRID_SIZE; y++){
+            if(grid[x][y] === target.id) grid[x][y] = 0;
+        }
+    }
+    
+    if (killer && killer.id !== target.id) {
+        killer.killCount = (killer.killCount || 0) + 1;
+    }
+    playHitSound(); // Trigger MW2 Hitmarker on ANY kill or death!
+    
+    target.deathMarkerAlpha = 1.0;
+    target.deathCount = (target.deathCount || 0) + 1;
+    target.respawnTimer = 10 + ((target.deathCount - 1) * 5);
+    
+    updateTerritoryCount(); // Force leaderboard redraw to show death state immediately
 }
 
-function movePlayer() {
-    currentDir = nextDir;
-    let oldPos = { x: playerPos.x, y: playerPos.y };
-    playerPos.x += currentDir.dx;
-    playerPos.y += currentDir.dy;
-
-    // Bounds check
-    if (playerPos.x < 0 || playerPos.x >= GRID_SIZE || playerPos.y < 0 || playerPos.y >= GRID_SIZE) {
-        collisionCell = {
-            x: Math.max(0, Math.min(GRID_SIZE - 1, playerPos.x)),
-            y: Math.max(0, Math.min(GRID_SIZE - 1, playerPos.y))
-        };
-        die();
+function respawnBot(bot) {
+    if(!isPlaying) return;
+    
+    let spawn = getSafeSpawnPosition();
+    if(!spawn) {
+        // If the board is too crowded to find an empty 5x5, wait and try again
+        setTimeout(() => respawnBot(bot), 1500);
         return;
     }
 
-    // Hit own path check
-    for (let p of path) {
-        if (p.x === playerPos.x && p.y === playerPos.y) {
-            collisionCell = { x: playerPos.x, y: playerPos.y };
-            die();
-            return;
+    bot.isDead = false;
+    bot.path = [];
+    bot.territoryCount = 0;
+    
+    bot.pos = {x: spawn.x, y: spawn.y};
+    bot.visualPos = {x: spawn.x * CELL_SIZE, y: spawn.y * CELL_SIZE};
+    bot.currentDir = {dx: 0, dy: 1};
+    bot.nextDir = {dx: 0, dy: 1};
+    
+    for(let dx=-1; dx<=1; dx++) {
+        for(let dy=-1; dy<=1; dy++) {
+            if(spawn.x+dx>=0 && spawn.x+dx<GRID_SIZE && spawn.y+dy>=0 && spawn.y+dy<GRID_SIZE)
+                grid[spawn.x + dx][spawn.y + dy] = bot.id;
         }
     }
-
-    // Leave trail BEHIND the player if the cell they just left was empty
-    if (grid[oldPos.x][oldPos.y] === 0) {
-        path.push({ x: oldPos.x, y: oldPos.y });
-    }
-
-    const state = grid[playerPos.x][playerPos.y];
-
-    if (state === 1) {
-        // In own territory
-        if (path.length > 0) {
-            capturePath();
-        }
-    }
-}
-
-function capturePath() {
-    // 1. Draw boundary
-    for (let p of path) {
-        grid[p.x][p.y] = 1;
-    }
-    path = [];
-
-    // 2. Flood fill outside to find empty interior
-    fillEnclosedArea();
     updateTerritoryCount();
 }
 
-function fillEnclosedArea() {
-    // A simple approach: Flood fill from edges (0,0 to GRID_SIZE,GRID_SIZE)
-    // Any 0 cell connected to edge remains 0. Any 0 cell NOT connected to edge becomes 1.
+function getShortestPathToBase(startX, startY, botId, botPath) {
+    if (grid[startX][startY] === botId) return 0;
+    
+    let queue = [{x: startX, y: startY, dist: 0}];
+    let visited = new Set();
+    visited.add(`${startX},${startY}`);
+    let pathSet = new Set();
+    for (let i = 0; i < botPath.length; i++) pathSet.add(`${botPath[i].x},${botPath[i].y}`);
+    
+    let cellsExplored = 0;
+    
+    while(queue.length > 0) {
+        let curr = queue.shift();
+        
+        for (let d of [{dx:0,dy:1},{dx:0,dy:-1},{dx:1,dy:0},{dx:-1,dy:0}]) {
+            let nx = curr.x + d.dx;
+            let ny = curr.y + d.dy;
+            
+            if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                if (grid[nx][ny] === botId) return curr.dist + 1;
+                
+                let key = `${nx},${ny}`;
+                if (!visited.has(key) && !pathSet.has(key)) {
+                    visited.add(key);
+                    queue.push({x: nx, y: ny, dist: curr.dist + 1});
+                }
+            }
+        }
+    }
+    return Infinity; // Completely trapped!
+}
+
+function getShortestPathToEdge(startX, startY, botId) {
+    if (grid[startX][startY] !== botId) return 0;
+    
+    let queue = [{x: startX, y: startY, dist: 0}];
+    let visited = new Set();
+    visited.add(`${startX},${startY}`);
+    let cellsExplored = 0;
+    
+    while(queue.length > 0) {
+        let curr = queue.shift();
+        cellsExplored++;
+        if (cellsExplored > 200) return curr.dist; 
+        
+        for (let d of [{dx:0,dy:1},{dx:0,dy:-1},{dx:1,dy:0},{dx:-1,dy:0}]) {
+            let nx = curr.x + d.dx;
+            let ny = curr.y + d.dy;
+            
+            if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+                if (grid[nx][ny] !== botId) return curr.dist + 1;
+                
+                let key = `${nx},${ny}`;
+                if (!visited.has(key)) {
+                    visited.add(key);
+                    queue.push({x: nx, y: ny, dist: curr.dist + 1});
+                }
+            }
+        }
+    }
+    return Infinity;
+}
+
+function updateBotAI(bot) {
+    bot.framesInState++;
+    let validDirs = [
+        {dx: 0, dy: 1}, {dx: 0, dy: -1}, {dx: 1, dy: 0}, {dx: -1, dy: 0}
+    ].filter(d => !(d.dx === -bot.currentDir.dx && d.dy === -bot.currentDir.dy));
+
+    let inBase = grid[bot.pos.x][bot.pos.y] === bot.id;
+    
+    // Filter out walls
+    validDirs = validDirs.filter(d => {
+        let nx = bot.pos.x + d.dx;
+        let ny = bot.pos.y + d.dy;
+        return nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE;
+    });
+    
+    // Filter out own path
+    validDirs = validDirs.filter(d => {
+        let nx = bot.pos.x + d.dx;
+        let ny = bot.pos.y + d.dy;
+        return !bot.path.some(p => p.x === nx && p.y === ny);
+    });
+
+    // Topological Safety Check: Do not enter dead-ends!
+    validDirs = validDirs.filter(d => {
+        let nx = bot.pos.x + d.dx;
+        let ny = bot.pos.y + d.dy;
+        d.distToBase = getShortestPathToBase(nx, ny, bot.id, bot.path);
+        return d.distToBase !== Infinity;
+    });
+
+    if(validDirs.length === 0) return;
+
+    // --- Situational Awareness ---
+    let closestEnemyDist = 9999;
+    let closestEnemyToPath = 9999;
+    let closestEnemyObj = null;
+
+    entities.forEach(other => {
+        if (other.id !== bot.id && !other.isDead) {
+            let distToHead = Math.abs(bot.pos.x - other.pos.x) + Math.abs(bot.pos.y - other.pos.y);
+            if (distToHead < closestEnemyDist) {
+                closestEnemyDist = distToHead;
+                closestEnemyObj = other;
+            }
+            for (let p of bot.path) {
+                let d = Math.abs(other.pos.x - p.x) + Math.abs(other.pos.y - p.y);
+                if (d < closestEnemyToPath) closestEnemyToPath = d;
+            }
+        }
+    });
+
+    let baseTiles = [];
+    for (let x=0; x<GRID_SIZE; x++) {
+        for (let y=0; y<GRID_SIZE; y++) {
+            if (grid[x][y] === bot.id) baseTiles.push({x, y});
+        }
+    }
+
+    // Estimate bounds of current path to calculate Reward
+    let minX = bot.pos.x, maxX = bot.pos.x, minY = bot.pos.y, maxY = bot.pos.y;
+    for (let p of bot.path) {
+        if (p.x < minX) minX = p.x;
+        if (p.x > maxX) maxX = p.x;
+        if (p.y < minY) minY = p.y;
+        if (p.y > maxY) maxY = p.y;
+    }
+
+    let bestNetScore = -Infinity;
+    let chosenDir = null;
+
+    let maxSafePath = 40;
+    if (closestEnemyDist > 25) maxSafePath = 150;
+    else if (closestEnemyDist > 15) maxSafePath = 80;
+
+    let isPanicking = (!inBase && (closestEnemyToPath <= 8 || bot.path.length > maxSafePath));
+
+    for (let d of validDirs) {
+        let nx = bot.pos.x + d.dx;
+        let ny = bot.pos.y + d.dy;
+        let isNextCellBase = grid[nx][ny] === bot.id;
+        let distToBase = d.distToBase;
+
+        if (isPanicking) {
+            // STRICT PANIC OVERRIDE: Drop everything and run home
+            let panicScore = -distToBase * 1000;
+            if (isNextCellBase) panicScore += 5000;
+            if (panicScore > bestNetScore) {
+                bestNetScore = panicScore;
+                chosenDir = d;
+            }
+            continue; // Skip all greedy reward/risk calculations
+        }
+
+        // --- Calculate Reward ---
+        let reward = 0;
+        
+        if (bot.path.length === 0) {
+            let distToEdge = getShortestPathToEdge(nx, ny, bot.id);
+            reward += (50 - distToEdge) * 100; 
+            if (!isNextCellBase) {
+                reward += 5000; // HUGE bonus to finally step out of base!
+            }
+        } else {
+            if (!isNextCellBase) {
+                let potMinX = Math.min(minX, nx);
+                let potMaxX = Math.max(maxX, nx);
+                let potMinY = Math.min(minY, ny);
+                let potMaxY = Math.max(maxY, ny);
+                let area = (potMaxX - potMinX + 1) * (potMaxY - potMinY + 1);
+                
+                // Maximize area capture
+                reward += area * 5; 
+                
+                // Efficient carving: heavily reward straight lines, but force a turn eventually to make a box
+                let maxStraight = (closestEnemyDist > 20) ? 35 : 18;
+                let forceTurn = (closestEnemyDist > 20) ? 45 : 25;
+
+                if (d.dx === bot.currentDir.dx && d.dy === bot.currentDir.dy) {
+                    if (bot.framesInState < maxStraight) {
+                        reward += 300; 
+                    } else if (bot.framesInState > forceTurn) {
+                        reward -= 500; 
+                    }
+                }
+            } else {
+                // Securing the area is the ultimate reward
+                let area = (maxX - minX + 1) * (maxY - minY + 1);
+                reward += area * 25; 
+            }
+        }
+
+        let distToEnemyPath = 9999;
+        entities.forEach(other => {
+            if (other.id !== bot.id && !other.isDead) {
+                for (let p of other.path) {
+                    let dPath = Math.abs(nx - p.x) + Math.abs(ny - p.y);
+                    if (dPath < distToEnemyPath) distToEnemyPath = dPath;
+                }
+            }
+        });
+        if (distToEnemyPath <= 5) {
+            reward += (10 - distToEnemyPath) * 150; 
+        }
+
+        // --- Calculate Risk ---
+        let risk = 0;
+        
+        if (!inBase) {
+            let distancePenaltyMultiplier = (closestEnemyDist > 20) ? 5 : 20;
+            risk += distToBase * distancePenaltyMultiplier;
+            
+            if (closestEnemyToPath < 15) {
+                risk += (15 - closestEnemyToPath) * 100;
+                if (closestEnemyToPath <= 4) risk += 5000; 
+            }
+            
+            if (closestEnemyObj) {
+                let distToEnemy = Math.abs(nx - closestEnemyObj.pos.x) + Math.abs(ny - closestEnemyObj.pos.y);
+                if (distToEnemy < 10) {
+                    risk += (10 - distToEnemy) * 50;
+                }
+            }
+            
+            let manhattanToBase = 9999;
+            if (baseTiles.length > 0) {
+                for (let b of baseTiles) {
+                    let mDist = Math.abs(nx - b.x) + Math.abs(ny - b.y);
+                    if (mDist < manhattanToBase) manhattanToBase = mDist;
+                }
+            }
+            if (distToBase > manhattanToBase + 2) {
+                risk += (distToBase - manhattanToBase) * 200; 
+            }
+        } else {
+            if (closestEnemyObj) {
+                let distToEnemy = Math.abs(nx - closestEnemyObj.pos.x) + Math.abs(ny - closestEnemyObj.pos.y);
+                if (distToEnemy <= 5) {
+                    let enemyInTheirBase = grid[closestEnemyObj.pos.x][closestEnemyObj.pos.y] === closestEnemyObj.id;
+                    if (enemyInTheirBase) {
+                        risk += 500; 
+                    } else {
+                        reward += (10 - distToEnemy) * 300; 
+                    }
+                }
+            }
+        }
+
+        let netScore = reward - risk + (Math.random() * 10);
+
+        if (netScore > bestNetScore) {
+            bestNetScore = netScore;
+            chosenDir = d;
+        }
+    }
+
+    if(chosenDir) {
+        if (bot.currentDir.dx !== chosenDir.dx || bot.currentDir.dy !== chosenDir.dy) {
+            bot.framesInState = 0; 
+        }
+        bot.nextDir = chosenDir;
+    } else {
+        bot.nextDir = validDirs[0];
+    }
+}
+
+function moveEntities() {
+    entities.forEach(e => {
+        if(e.isDead) return;
+        
+        if(!e.isReal) updateBotAI(e);
+
+        e.currentDir = e.nextDir;
+        let oldPos = {x: e.pos.x, y: e.pos.y};
+        e.pos.x += e.currentDir.dx;
+        e.pos.y += e.currentDir.dy;
+
+        // Out of bounds
+        if(e.pos.x < 0 || e.pos.x >= GRID_SIZE || e.pos.y < 0 || e.pos.y >= GRID_SIZE) {
+            e.collisionCell = {
+                x: Math.max(0, Math.min(GRID_SIZE - 1, e.pos.x)),
+                y: Math.max(0, Math.min(GRID_SIZE - 1, e.pos.y))
+            };
+            killEntity(e, null);
+            return;
+        }
+
+        // Self intersect
+        for(let p of e.path) {
+            if(p.x === e.pos.x && p.y === e.pos.y) {
+                e.collisionCell = {x: e.pos.x, y: e.pos.y};
+                killEntity(e, null);
+                return;
+            }
+        }
+    });
+    
+    // Check path cuts and head-to-head
+    entities.forEach(e => {
+        if(e.isDead) return;
+        entities.forEach(other => {
+            if(other.isDead || e.id === other.id) return;
+            
+            // e cut other path
+            for(let p of other.path) {
+                if(p.x === e.pos.x && p.y === e.pos.y) {
+                    other.collisionCell = {x: e.pos.x, y: e.pos.y};
+                    killEntity(other, e);
+                    if(e.isReal) playTurnSound(); 
+                }
+            }
+            
+            // Head to head
+            let crossed = (e.pos.x === (other.pos.x - other.currentDir.dx) && 
+                           e.pos.y === (other.pos.y - other.currentDir.dy) &&
+                           other.pos.x === (e.pos.x - e.currentDir.dx) &&
+                           other.pos.y === (e.pos.y - e.currentDir.dy));
+                           
+            if((e.pos.x === other.pos.x && e.pos.y === other.pos.y) || crossed) {
+                let eSafe = grid[e.pos.x][e.pos.y] === e.id;
+                let otherSafe = grid[other.pos.x][other.pos.y] === other.id;
+                
+                if (eSafe && !otherSafe) {
+                    other.collisionCell = {x: e.pos.x, y: e.pos.y};
+                    killEntity(other, e);
+                    if(e.isReal) playTurnSound(); 
+                } else if (!eSafe && otherSafe) {
+                    e.collisionCell = {x: other.pos.x, y: other.pos.y};
+                    killEntity(e, other);
+                    if(other.isReal) playTurnSound(); 
+                } else {
+                    e.collisionCell = {x: e.pos.x, y: e.pos.y};
+                    other.collisionCell = {x: other.pos.x, y: other.pos.y};
+                    killEntity(e, null);
+                    killEntity(other, null);
+                }
+            }
+        });
+    });
+
+    // Process valid moves
+    entities.forEach(e => {
+        if(e.isDead) return;
+        let oldPos = {x: e.pos.x - e.currentDir.dx, y: e.pos.y - e.currentDir.dy};
+        
+        if (grid[oldPos.x][oldPos.y] !== e.id) {
+            e.path.push({x: oldPos.x, y: oldPos.y});
+        }
+        
+        if (grid[e.pos.x][e.pos.y] === e.id && e.path.length > 0) {
+            capturePath(e);
+        }
+    });
+}
+
+function capturePath(e) {
+    for(let p of e.path) grid[p.x][p.y] = e.id;
+    e.path = [];
+    fillEnclosedArea(e.id);
+    updateTerritoryCount();
+}
+
+function fillEnclosedArea(id) {
     let tempGrid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
     let queue = [];
 
-    // Add all edge cells to queue if they are 0
-    for (let x = 0; x < GRID_SIZE; x++) {
-        for (let y = 0; y < GRID_SIZE; y++) {
-            if ((x === 0 || x === GRID_SIZE - 1 || y === 0 || y === GRID_SIZE - 1) && grid[x][y] === 0) {
-                tempGrid[x][y] = 2; // 2 means "outside"
-                queue.push({ x, y });
+    for(let x=0; x<GRID_SIZE; x++){
+        for(let y=0; y<GRID_SIZE; y++){
+            if((x===0 || x===GRID_SIZE-1 || y===0 || y===GRID_SIZE-1) && grid[x][y] !== id) {
+                tempGrid[x][y] = 2;
+                queue.push({x, y});
             }
         }
     }
 
-    const dirs = [{ dx: 0, dy: 1 }, { dx: 0, dy: -1 }, { dx: 1, dy: 0 }, { dx: -1, dy: 0 }];
-
-    // BFS flood fill
+    const dirs = [{dx:0,dy:1},{dx:0,dy:-1},{dx:1,dy:0},{dx:-1,dy:0}];
     let head = 0;
-    while (head < queue.length) {
+    while(head < queue.length) {
         let curr = queue[head++];
-        for (let dir of dirs) {
-            let nx = curr.x + dir.dx;
-            let ny = curr.y + dir.dy;
-            if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
-                if (grid[nx][ny] === 0 && tempGrid[nx][ny] === 0) {
+        for(let d of dirs) {
+            let nx = curr.x + d.dx;
+            let ny = curr.y + d.dy;
+            if(nx>=0 && nx<GRID_SIZE && ny>=0 && ny<GRID_SIZE) {
+                if(grid[nx][ny] !== id && tempGrid[nx][ny] === 0) {
                     tempGrid[nx][ny] = 2;
-                    queue.push({ x: nx, y: ny });
+                    queue.push({x:nx, y:ny});
                 }
             }
         }
     }
 
-    // Anything still 0 in tempGrid and 0 in actual grid is enclosed!
-    for (let x = 0; x < GRID_SIZE; x++) {
-        for (let y = 0; y < GRID_SIZE; y++) {
-            if (grid[x][y] === 0 && tempGrid[x][y] === 0) {
-                grid[x][y] = 1;
+    for(let x=0; x<GRID_SIZE; x++){
+        for(let y=0; y<GRID_SIZE; y++){
+            if(grid[x][y] !== id && tempGrid[x][y] === 0) {
+                grid[x][y] = id;
+                
+                // Process encirclement logic on enemies
+                entities.forEach(other => {
+                    if (other.id !== id && !other.isDead) {
+                        // 1. Delete any uncaptured trail segments caught inside
+                        other.path = other.path.filter(p => !(p.x === x && p.y === y));
+                        
+                        // 2. Kill the opponent if their actual head is encircled
+                        if (other.pos.x === x && other.pos.y === y) {
+                            other.collisionCell = {x, y};
+                            killEntity(other, entities.find(e => e.id === id));
+                        }
+                    }
+                });
             }
         }
     }
 }
 
-// --- Input Handling ---
-window.addEventListener('keydown', (e) => {
-    if (!isPlaying) return;
+function die(playerWon = false) {
+    isPlaying = false;
+    isWon = true; // Always trigger the game over celebration logic!
+    window.globalPlayerWon = playerWon;
+    
+    updateTerritoryCount(); // Final cleanup for the leaderboard UI
+    
+    document.body.classList.remove("playing-cursor-hide");
+    gameOverScreen.classList.remove("hidden");
 
-    // Prevent default scrolling for arrows/space
+    if (playerWon) {
+        gameOverTitle.innerHTML = "Victory!";
+        gameOverTitle.style.color = "#34C759";
+    } else {
+        playHitSound();
+        gameOverTitle.innerHTML = "Defeat!";
+        gameOverTitle.style.textAlign = "center";
+        gameOverTitle.style.color = "#FF3B30";
+    }
+
+    leaderboard.classList.add("hidden");
+    gameOverLeaderboard.innerHTML = leaderboard.innerHTML;
+    
+    particles = [];
+    fireworkTimer = 1.0;
+    lastTime = performance.now();
+    requestAnimationFrame(winLoop);
+}
+
+window.addEventListener("keydown", (e) => {
+    if (!isPlaying) return;
+    let player = entities.find(ent => ent.isReal);
+    if (!player || player.isDead) return;
+
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
         e.preventDefault();
     }
 
-    let oldNextDir = { dx: nextDir.dx, dy: nextDir.dy };
+    let oldNextDir = { dx: player.nextDir.dx, dy: player.nextDir.dy };
 
-    if ((e.key === 'ArrowUp' || e.key === 'w' || e.key === 'W') && currentDir.dy !== 1) {
-        nextDir = { dx: 0, dy: -1 };
-    } else if ((e.key === 'ArrowDown' || e.key === 's' || e.key === 'S') && currentDir.dy !== -1) {
-        nextDir = { dx: 0, dy: 1 };
-    } else if ((e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') && currentDir.dx !== 1) {
-        nextDir = { dx: -1, dy: 0 };
-    } else if ((e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') && currentDir.dx !== -1) {
-        nextDir = { dx: 1, dy: 0 };
+    if ((e.key === "ArrowUp" || e.key === "w" || e.key === "W") && player.currentDir.dy !== 1) {
+        player.nextDir = { dx: 0, dy: -1 };
+    } else if ((e.key === "ArrowDown" || e.key === "s" || e.key === "S") && player.currentDir.dy !== -1) {
+        player.nextDir = { dx: 0, dy: 1 };
+    } else if ((e.key === "ArrowLeft" || e.key === "a" || e.key === "A") && player.currentDir.dx !== 1) {
+        player.nextDir = { dx: -1, dy: 0 };
+    } else if ((e.key === "ArrowRight" || e.key === "d" || e.key === "D") && player.currentDir.dx !== -1) {
+        player.nextDir = { dx: 1, dy: 0 };
     }
 
-    if (oldNextDir.dx !== nextDir.dx || oldNextDir.dy !== nextDir.dy) {
+    if (oldNextDir.dx !== player.nextDir.dx || oldNextDir.dy !== player.nextDir.dy) {
         playTurnSound();
     }
 });
 
-// Touch Swipes
 let touchStartX = 0;
 let touchStartY = 0;
 
-window.addEventListener('touchstart', e => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
+window.addEventListener("touchstart", e => {
+    touchStartX = e.touches[0].screenX;
+    touchStartY = e.touches[0].screenY;
 }, { passive: false });
 
-window.addEventListener('touchmove', e => {
-    if (isPlaying) e.preventDefault(); // Prevent scrolling while playing
-}, { passive: false });
+window.addEventListener("touchmove", e => {
+    if (isPlaying) e.preventDefault();
+    else return;
+    
+    let player = entities.find(ent => ent.isReal);
+    if (!player || player.isDead) return;
 
-window.addEventListener('touchend', e => {
-    if (!isPlaying) return;
-    let touchEndX = e.changedTouches[0].screenX;
-    let touchEndY = e.changedTouches[0].screenY;
+    let touchEndX = e.touches[0].screenX;
+    let touchEndY = e.touches[0].screenY;
 
     let dx = touchEndX - touchStartX;
     let dy = touchEndY - touchStartY;
 
-    let oldNextDir = { dx: nextDir.dx, dy: nextDir.dy };
+    let oldNextDir = { dx: player.nextDir.dx, dy: player.nextDir.dy };
+    let turned = false;
 
-    if (Math.abs(dx) > Math.abs(dy)) {
-        // Horizontal
-        if (dx > 30 && currentDir.dx !== -1) nextDir = { dx: 1, dy: 0 };
-        else if (dx < -30 && currentDir.dx !== 1) nextDir = { dx: -1, dy: 0 };
-    } else {
-        // Vertical
-        if (dy > 30 && currentDir.dy !== -1) nextDir = { dx: 0, dy: 1 };
-        else if (dy < -30 && currentDir.dy !== 1) nextDir = { dx: 0, dy: -1 };
+    if (Math.abs(dx) > 30 || Math.abs(dy) > 30) {
+        if (Math.abs(dx) > Math.abs(dy)) {
+            if (dx > 0 && player.currentDir.dx !== -1) { player.nextDir = { dx: 1, dy: 0 }; turned = true; }
+            else if (dx < 0 && player.currentDir.dx !== 1) { player.nextDir = { dx: -1, dy: 0 }; turned = true; }
+        } else {
+            if (dy > 0 && player.currentDir.dy !== -1) { player.nextDir = { dx: 0, dy: 1 }; turned = true; }
+            else if (dy < 0 && player.currentDir.dy !== 1) { player.nextDir = { dx: 0, dy: -1 }; turned = true; }
+        }
     }
 
-    if (oldNextDir.dx !== nextDir.dx || oldNextDir.dy !== nextDir.dy) {
-        playTurnSound();
+    if (turned) {
+        touchStartX = touchEndX;
+        touchStartY = touchEndY;
+        
+        if (oldNextDir.dx !== player.nextDir.dx || oldNextDir.dy !== player.nextDir.dy) {
+            playTurnSound();
+        }
     }
-});
+}, { passive: false });
 
-// --- Render Loop ---
+function spawnFirework() {
+    const modalBox = document.querySelector('#game-over-screen > div').getBoundingClientRect();
+    
+    // Calculate the center and buffered dimensions of the modal
+    const cx = (modalBox.left + modalBox.right) / 2;
+    const cy = (modalBox.top + modalBox.bottom) / 2;
+    const hw = (modalBox.right - modalBox.left) / 2 + 50; // half width + buffer
+    const hh = (modalBox.bottom - modalBox.top) / 2 + 50; // half height + buffer
+
+    // Bias spawning closely around the top and sides of the modal so particles rain down onto it
+    const angle = Math.PI + (Math.random() * Math.PI); // PI to 2*PI (top semicircle)
+    const dist = Math.random() * 180; // distance extending outwards from the buffered edge
+    
+    let x = cx + Math.cos(angle) * (hw + dist);
+    let y = cy + Math.sin(angle) * (hh + dist);
+
+    // Fallback in case modal bounds are completely broken
+    if (isNaN(x) || isNaN(y)) {
+        x = Math.random() * fxCanvas.width;
+        y = Math.random() * (fxCanvas.height / 2);
+    }
+
+    // Introduce randomized scaling for fireworks of various sizes
+    const scale = Math.random() * 1.5 + 0.5; // 0.5x to 2.0x overall scale multiplier
+    const particleCount = Math.floor(120 * scale); // varies from 60 to 240 particles
+
+    let colors = [
+        { r: 255, g: 59, b: 48 }, // Red
+        { r: 52, g: 199, b: 89 }, // Green
+        { r: 0, g: 122, b: 255 }, // Blue
+        { r: 255, g: 204, b: 0 }, // Yellow
+        { r: 175, g: 82, b: 222 } // Purple
+    ];
+    let color = colors[Math.floor(Math.random() * colors.length)];
+
+    for (let i = 0; i < particleCount; i++) {
+        let pAngle = Math.random() * Math.PI * 2;
+        let speed = (Math.random() * 250 + 50) * scale; // explosion radius varies with scale
+        particles.push({
+            x: x,
+            y: y,
+            vx: Math.cos(pAngle) * speed,
+            vy: Math.sin(pAngle) * speed,
+            r: color.r,
+            g: color.g,
+            b: color.b,
+            life: Math.random() * 1.0 + 0.5,
+            maxLife: 1.5,
+            size: (Math.random() * 4 + 1) * scale, // physical particle size varies with scale
+            stuck: false,
+            splatTime: Math.random() * 1.5 // Randomized 'z-depth' hit time
+        });
+    }
+
+    playFireworkSound();
+}
+function updateParticles(dt) {
+    const modalBox = document.querySelector('#game-over-screen > div').getBoundingClientRect();
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        
+        if (!p.stuck) {
+            p.x += p.vx * dt;
+            p.y += p.vy * dt;
+            p.vy += 250 * dt; // gravity
+            
+            // Check collision with the frosted glass modal
+            // Uses splatTime to simulate 3D depth so they don't all catch on the edge
+            if (p.vy > 0 && p.life < p.splatTime &&
+                p.x >= modalBox.left && p.x <= modalBox.right && 
+                p.y >= modalBox.top && p.y <= modalBox.bottom) {
+                
+                p.stuck = true;
+                p.vx = 0;
+                p.vy = Math.random() * 30 + 10; // Slow drip down the glass
+                p.size += Math.random() * 2 + 1; // Splatter expansion
+            }
+        } else {
+            // Drip down the glass
+            p.y += p.vy * dt;
+        }
+
+        if (p.stuck) {
+            p.life -= dt / 3.0; // Decay 3 times slower when stuck to the glass
+        } else {
+            p.life -= dt;
+        }
+
+        if (p.life <= 0) {
+            particles.splice(i, 1);
+        }
+    }
+}
+function drawParticles(ctx) {
+    particles.forEach(p => {
+        let alpha = p.life / p.maxLife;
+        if (alpha < 0) alpha = 0;
+        ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
+        ctx.beginPath();
+        if (p.stuck) {
+            // Neon glow for vibrant splatter
+            ctx.shadowBlur = 8;
+            ctx.shadowColor = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
+            // Draw an elongated drip shape
+            ctx.ellipse(p.x, p.y, p.size / 2, p.size, 0, 0, Math.PI * 2);
+        } else {
+            ctx.shadowBlur = 0; // normal particle
+            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        }
+        ctx.fill();
+        ctx.shadowBlur = 0; // reset to avoid bleeding
+    });
+}
+function winLoop(timestamp) {
+    if (!isWon) return; // safety stop
+
+    let dt = (timestamp - lastTime) / 1000;
+    lastTime = timestamp;
+    if (dt > 0.1) dt = 0.1;
+
+    if (window.globalPlayerWon) {
+        fireworkTimer += dt;
+        if (fireworkTimer > 0.6) { // Spawn every 0.6s (decreased frequency by ~20%)
+            fireworkTimer = 0;
+            spawnFirework();
+        }
+    }
+
+    updateParticles(dt);
+
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    drawGame(); // Draws the static board
+    drawParticles(fxCtx); // Overlay fireworks on the absolute foreground
+
+    winAnimationFrame = requestAnimationFrame(winLoop);
+}
+
 function drawRect(x, y, color) {
     ctx.fillStyle = color;
     ctx.fillRect(x * CELL_SIZE, y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
@@ -515,16 +1249,30 @@ function gameLoop(time) {
     if (!isPlaying) return;
 
     let dt = time - lastTime;
-    if (dt > 1000) dt = 16; // Prevent massive jumps if tab was inactive
+    if (dt > 1000) dt = 16;
     lastTime = time;
+    
+    // Update death cooldowns
+    entities.forEach(e => {
+        if (e.isDead && e.respawnTimer > 0) {
+            e.respawnTimer -= dt / 1000;
+            let timerEl = document.getElementById(`timer-${e.id}`);
+            if (timerEl) {
+                timerEl.textContent = `${Math.ceil(e.respawnTimer)}`;
+            }
+            if (e.respawnTimer <= 0) {
+                e.respawnTimer = 0;
+                respawnBot(e); // This now respawns both bots and the real player
+            }
+        }
+    });
 
-    // Movement Logic
     moveTimer += dt;
     while (moveTimer >= moveInterval) {
-        movePlayer();
+        moveEntities();
         moveTimer -= moveInterval;
         if (!isPlaying) {
-            drawGame(1.0); // Draw the final state before stopping
+            drawGame(1.0);
             return;
         }
     }
@@ -535,108 +1283,201 @@ function gameLoop(time) {
 }
 
 function drawGame(progress) {
-    let targetX = playerPos.x * CELL_SIZE;
-    let targetY = playerPos.y * CELL_SIZE;
-
-    // Previous physical pos
-    let prevX = (playerPos.x - currentDir.dx) * CELL_SIZE;
-    let prevY = (playerPos.y - currentDir.dy) * CELL_SIZE;
-
-    visualPos.x = prevX + (targetX - prevX) * progress;
-    visualPos.y = prevY + (targetY - prevY) * progress;
-
-    // --- Draw ---
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Grid Lines
-    ctx.strokeStyle = COLORS.gridLines;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let i = 0; i <= GRID_SIZE; i++) {
-        ctx.moveTo(i * CELL_SIZE, 0);
-        ctx.lineTo(i * CELL_SIZE, 800);
-        ctx.moveTo(0, i * CELL_SIZE);
-        ctx.lineTo(800, i * CELL_SIZE);
-    }
-    ctx.stroke();
+    if (!gridCanvas) initGridCache();
+    ctx.drawImage(gridCanvas, 0, 0);
 
     // Territories
+    let colorMap = {};
+    for (let e of entities) colorMap[e.id] = e.color;
+    
+    let regionsByColor = {};
     for (let x = 0; x < GRID_SIZE; x++) {
         for (let y = 0; y < GRID_SIZE; y++) {
-            if (grid[x][y] === 1) {
-                drawRect(x, y, selectedColorHex);
+            let id = grid[x][y];
+            if (id > 0 && colorMap[id]) {
+                let c = colorMap[id];
+                if (!regionsByColor[c]) regionsByColor[c] = [];
+                regionsByColor[c].push({x, y});
             }
         }
     }
-
-    // Path
-    // To match Swift's path opacity effect
-    ctx.globalAlpha = 0.5;
-    for (let p of path) {
-        drawRect(p.x, p.y, selectedColorHex);
+    
+    for (let c in regionsByColor) {
+        ctx.fillStyle = c;
+        ctx.beginPath();
+        for (let p of regionsByColor[c]) {
+            ctx.rect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
+        ctx.fill();
     }
+
+    // Paths
+    ctx.globalAlpha = 0.5;
+    entities.forEach(e => {
+        if(e.isDead) return;
+        ctx.fillStyle = e.color;
+        ctx.beginPath();
+        for(let p of e.path) {
+            ctx.rect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+        }
+        ctx.fill();
+    });
     ctx.globalAlpha = 1.0;
 
-    // Player
-    if (!isPlaying && typeof collisionCell !== 'undefined' && collisionCell) {
-        // Explode the head at the collision cell
-        let cx = collisionCell.x * CELL_SIZE;
-        let cy = collisionCell.y * CELL_SIZE;
-        ctx.fillStyle = '#FF3B30'; // Bright iOS Red
-        ctx.shadowColor = 'rgba(255, 59, 48, 1)';
-        ctx.shadowBlur = 15;
-        // Draw it slightly larger to emphasize the collision
-        ctx.fillRect(cx - 2, cy - 2, CELL_SIZE + 4, CELL_SIZE + 4);
-        ctx.shadowBlur = 0;
+    // Heads
+    entities.forEach(e => {
+        if(e.isDead) {
+            if(isPlaying && e.collisionCell && e.deathMarkerAlpha > 0) {
+                let cx = e.collisionCell.x * CELL_SIZE;
+                let cy = e.collisionCell.y * CELL_SIZE;
+                ctx.fillStyle = `rgba(255, 59, 48, ${e.deathMarkerAlpha})`;
+                ctx.shadowColor = `rgba(255, 59, 48, ${e.deathMarkerAlpha})`;
+                ctx.shadowBlur = 15;
+                ctx.fillRect(cx - 2, cy - 2, CELL_SIZE + 4, CELL_SIZE + 4);
+                ctx.shadowBlur = 0;
 
-        // Draw Hitmarker
-        let centerX = cx + CELL_SIZE / 2;
-        let centerY = cy + CELL_SIZE / 2;
-        let hmSize = CELL_SIZE * 0.8;
+                let centerX = cx + CELL_SIZE / 2;
+                let centerY = cy + CELL_SIZE / 2;
+                let hmSize = CELL_SIZE * 0.8;
 
-        ctx.strokeStyle = 'white';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.moveTo(centerX - 4, centerY - 4);
-        ctx.lineTo(centerX - hmSize, centerY - hmSize);
-        ctx.moveTo(centerX + 4, centerY + 4);
-        ctx.lineTo(centerX + hmSize, centerY + hmSize);
-        ctx.moveTo(centerX + 4, centerY - 4);
-        ctx.lineTo(centerX + hmSize, centerY - hmSize);
-        ctx.moveTo(centerX - 4, centerY + 4);
-        ctx.lineTo(centerX - hmSize, centerY + hmSize);
-        ctx.stroke();
-    } else {
-        ctx.fillStyle = selectedColorHex;
-        // Draw slightly larger/shadowed box for player head
-        ctx.shadowColor = 'rgba(0,0,0,0.5)';
-        ctx.shadowBlur = 5;
-        ctx.fillRect(visualPos.x, visualPos.y, CELL_SIZE, CELL_SIZE);
-        ctx.shadowBlur = 0; // reset
-
-        // Draw Crown if King
-        if (isKing) {
-            let cx = visualPos.x + CELL_SIZE / 2;
-            let cy = visualPos.y - 6; // base of the crown
-            let w = 14;
-            let h = 10;
-
-            ctx.fillStyle = '#FFCC00'; // Gold color
-            ctx.shadowColor = 'rgba(0,0,0,0.5)';
-            ctx.shadowBlur = 4;
-
-            ctx.beginPath();
-            ctx.moveTo(cx - w/2, cy); // bottom left
-            ctx.lineTo(cx + w/2, cy); // bottom right
-            ctx.lineTo(cx + w/2 + 2, cy - h); // top right peak
-            ctx.lineTo(cx + w/4, cy - h/2 + 1); // right valley
-            ctx.lineTo(cx, cy - h - 3); // center peak
-            ctx.lineTo(cx - w/4, cy - h/2 + 1); // left valley
-            ctx.lineTo(cx - w/2 - 2, cy - h); // top left peak
-            ctx.closePath();
-
-            ctx.fill();
-            ctx.shadowBlur = 0;
+                ctx.strokeStyle = `rgba(255, 255, 255, ${e.deathMarkerAlpha})`;
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(centerX - 4, centerY - 4);
+                ctx.lineTo(centerX - hmSize, centerY - hmSize);
+                ctx.moveTo(centerX + 4, centerY + 4);
+                ctx.lineTo(centerX + hmSize, centerY + hmSize);
+                ctx.moveTo(centerX + 4, centerY - 4);
+                ctx.lineTo(centerX + hmSize, centerY - hmSize);
+                ctx.moveTo(centerX - 4, centerY + 4);
+                ctx.lineTo(centerX - hmSize, centerY + hmSize);
+                ctx.stroke();
+                
+                e.deathMarkerAlpha -= 0.05; // Fade out quickly
+            }
+            return;
         }
+
+        let targetX = e.pos.x * CELL_SIZE;
+        let targetY = e.pos.y * CELL_SIZE;
+        let prevX = (e.pos.x - e.currentDir.dx) * CELL_SIZE;
+        let prevY = (e.pos.y - e.currentDir.dy) * CELL_SIZE;
+
+        if (isPlaying && progress !== undefined) {
+            e.visualPos.x = prevX + (targetX - prevX) * progress;
+            e.visualPos.y = prevY + (targetY - prevY) * progress;
+        }
+
+        let isWinningPlayer = (!isPlaying && isWon && e.id === kingId);
+        
+        if (isWinningPlayer) {
+            let t = (performance.now() / 1000) % 2.0;
+            let jump = 0;
+            let rot = 0;
+            let scaleY_squash = 1.0;
+            
+            if (t < 0.2) {
+                let u = t / 0.2;
+                scaleY_squash = 1.0 - 0.2 * Math.sin(u * Math.PI);
+            } else if (t < 0.8) {
+                let u = (t - 0.2) / 0.6;
+                jump = Math.sin(u * Math.PI) * 40;
+                rot = u * Math.PI * 2;
+            } else if (t < 1.0) {
+                let u = (t - 0.8) / 0.2;
+                scaleY_squash = 1.0 - 0.2 * Math.sin(u * Math.PI);
+            }
+            
+            fxCtx.save();
+            const canvasRect = canvas.getBoundingClientRect();
+            let scaleX = canvasRect.width / 800;
+            let scaleY = canvasRect.height / 800;
+            
+            let screenX = canvasRect.left + e.visualPos.x * scaleX;
+            let screenY = canvasRect.top + e.visualPos.y * scaleY;
+            let sSize = CELL_SIZE * scaleX;
+            
+            fxCtx.translate(screenX + sSize/2, screenY + sSize/2 - (jump * scaleY));
+            fxCtx.rotate(rot);
+            fxCtx.scale(1.0, scaleY_squash);
+            fxCtx.translate(-(screenX + sSize/2), -(screenY + sSize/2));
+            
+            fxCtx.fillStyle = e.color;
+            fxCtx.shadowColor = "rgba(0,0,0,0.5)";
+            fxCtx.shadowBlur = 5 * scaleX;
+            fxCtx.fillRect(screenX, screenY, sSize, sSize);
+            fxCtx.shadowBlur = 0;
+            
+            fxCtx.fillStyle = "rgba(255, 255, 255, 0.3)";
+            fxCtx.fillRect(screenX + 3*scaleX, screenY + 3*scaleY, sSize - 6*scaleX, sSize - 6*scaleY);
+            
+            fxCtx.strokeStyle = "rgba(0,0,0,0.15)";
+            fxCtx.lineWidth = 1 * scaleX;
+            fxCtx.strokeRect(screenX, screenY, sSize, sSize);
+            
+            fxCtx.restore();
+            return;
+        }
+
+        ctx.save();
+        ctx.fillStyle = e.color;
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 5;
+        ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
+        ctx.shadowBlur = 0;
+        
+        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+        ctx.fillRect(e.visualPos.x + 3, e.visualPos.y + 3, CELL_SIZE - 6, CELL_SIZE - 6);
+        
+        ctx.strokeStyle = "rgba(0,0,0,0.15)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
+        
+        ctx.restore();
+    });
+
+    let king = entities.find(e => e.id === kingId);
+    if (king && !king.isDead && (isPlaying || isWon)) {
+        playerCrown.style.display = "block";
+        let scaleX = canvas.clientWidth / 800;
+        let scaleY = canvas.clientHeight / 800;
+        let cx = (king.visualPos.x + CELL_SIZE / 2) * scaleX;
+        let cy = (king.visualPos.y) * scaleY;
+        
+        if (!isPlaying && isWon) {
+            let t = (performance.now() / 1000) % 2.0;
+            let jump = 0;
+            let squashOffset = 0;
+
+            if (t < 0.2) {
+                let u = t / 0.2;
+                squashOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
+            } else if (t < 0.8) {
+                let u = (t - 0.2) / 0.6;
+                jump = Math.sin(u * Math.PI) * 40;
+            } else if (t < 1.0) {
+                let u = (t - 0.8) / 0.2;
+                squashOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
+            }
+
+            cy -= jump * scaleY;
+            cy += squashOffset * scaleY;
+        }
+
+        let cw = 24 * scaleX;
+        let ch = 18 * scaleY;
+        let crownSvg = playerCrown.querySelector('svg');
+        if (crownSvg) {
+            crownSvg.setAttribute('width', cw);
+            crownSvg.setAttribute('height', ch);
+        }
+
+        playerCrown.style.left = (cx - (cw / 2)) + "px";
+        playerCrown.style.top = (cy - ch - (4 * scaleY)) + "px";
+    } else {
+        playerCrown.style.display = "none";
     }
 }
+
