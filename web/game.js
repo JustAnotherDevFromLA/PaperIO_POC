@@ -111,8 +111,17 @@ let moveTimer = 0;
 const moveInterval = 100; // ms per grid step
 
 const playerCrown = document.getElementById("player-crown");
+const pauseBtn = document.getElementById("mobile-pause-btn");
 const fxCanvas = document.getElementById("fx-canvas");
 const fxCtx = fxCanvas.getContext("2d");
+
+let isPaused = false;
+function togglePause() {
+    if (!isPlaying) return;
+    isPaused = !isPaused;
+    pauseBtn.textContent = isPaused ? "▶️ Resume" : "⏸ Pause";
+}
+pauseBtn.addEventListener("click", togglePause);
 function resizeFxCanvas() {
     fxCanvas.width = window.innerWidth;
     fxCanvas.height = window.innerHeight;
@@ -414,6 +423,9 @@ function startGame() {
     gameOverScreen.classList.add("hidden");
     leaderboard.classList.remove("hidden");
     canvas.classList.remove("hidden");
+    pauseBtn.classList.remove("hidden");
+    isPaused = false;
+    pauseBtn.textContent = "⏸ Pause";
 
     isPlaying = true;
     document.body.classList.add("playing-cursor-hide");
@@ -1011,6 +1023,7 @@ function die(playerWon = false) {
     updateTerritoryCount(); // Final cleanup for the leaderboard UI
     
     document.body.classList.remove("playing-cursor-hide");
+    pauseBtn.classList.add("hidden");
     gameOverScreen.classList.remove("hidden");
 
     if (playerWon) {
@@ -1042,6 +1055,14 @@ window.addEventListener("keydown", (e) => {
     }
 
     let oldNextDir = { dx: player.nextDir.dx, dy: player.nextDir.dy };
+
+    if (e.code === "Space") {
+        e.preventDefault();
+        togglePause();
+        return;
+    }
+
+    if (isPaused) return;
 
     if ((e.key === "ArrowUp" || e.key === "w" || e.key === "W") && player.currentDir.dy !== 1) {
         player.nextDir = { dx: 0, dy: -1 };
@@ -1252,6 +1273,26 @@ function gameLoop(time) {
     if (dt > 1000) dt = 16;
     lastTime = time;
     
+    if (isPaused) {
+        let progress = moveTimer / moveInterval;
+        drawGame(progress);
+        
+        ctx.save();
+        ctx.fillStyle = "rgba(0,0,0,0.3)";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = "white";
+        ctx.font = "bold 64px -apple-system, BlinkMacSystemFont, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.shadowColor = "rgba(0,0,0,0.5)";
+        ctx.shadowBlur = 10;
+        ctx.fillText("PAUSED", canvas.width/2, canvas.height/2);
+        ctx.restore();
+        
+        requestAnimationFrame(gameLoop);
+        return;
+    }
+
     // Update death cooldowns
     entities.forEach(e => {
         if (e.isDead && e.respawnTimer > 0) {

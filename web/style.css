@@ -102,6 +102,28 @@ body {
     image-rendering: pixelated;
 }
 
+#mobile-pause-btn {
+    display: none; /* hidden by default on desktop */
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 40px;
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    cursor: pointer;
+    margin-bottom: max(env(safe-area-inset-bottom), 10px);
+}
+
+@media (hover: none) and (pointer: coarse) {
+    #mobile-pause-btn:not(.hidden) {
+        display: block;
+    }
+}
+
 /* Menus */
 #menu-screen {
     position: absolute;
