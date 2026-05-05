@@ -91,10 +91,25 @@
                     <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00"/>
                 </svg>
             </div>
+            
+            <!-- Confirmation Modal -->
+            <div id="confirm-modal" class="hidden">
+                <div class="modal-content-scale" style="max-width: 320px;">
+                    <h2 style="margin-top: 0;">Restart Game?</h2>
+                    <p style="margin-bottom: 20px; font-size: 16px;">Are you sure you want to restart? Your current progress will be lost.</p>
+                    <div style="display: flex; gap: 10px;">
+                        <button id="confirm-yes-btn" class="danger-btn" style="flex: 1;">Restart</button>
+                        <button id="confirm-no-btn" class="secondary-btn" style="flex: 1;">Cancel</button>
+                    </div>
+                </div>
+            </div>
         </div>
         
-        <!-- Mobile Pause Button -->
-        <button id="mobile-pause-btn" class="hidden">Pause</button>
+        <!-- Mobile Game Controls -->
+        <div id="mobile-controls" class="hidden">
+            <button id="mobile-pause-btn" class="mobile-btn">Pause</button>
+            <button id="mobile-restart-btn" class="mobile-btn danger-btn">Restart</button>
+        </div>
     </div>
 
     <script src="game.js"></script>

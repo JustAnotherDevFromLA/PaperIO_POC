@@ -111,7 +111,13 @@ let moveTimer = 0;
 const moveInterval = 100; // ms per grid step
 
 const playerCrown = document.getElementById("player-crown");
+const mobileControls = document.getElementById("mobile-controls");
 const pauseBtn = document.getElementById("mobile-pause-btn");
+const mobileRestartBtn = document.getElementById("mobile-restart-btn");
+const confirmModal = document.getElementById("confirm-modal");
+const confirmYesBtn = document.getElementById("confirm-yes-btn");
+const confirmNoBtn = document.getElementById("confirm-no-btn");
+
 const fxCanvas = document.getElementById("fx-canvas");
 const fxCtx = fxCanvas.getContext("2d");
 
@@ -122,6 +128,23 @@ function togglePause() {
     pauseBtn.textContent = isPaused ? "Resume" : "Pause";
 }
 pauseBtn.addEventListener("click", togglePause);
+
+mobileRestartBtn.addEventListener("click", () => {
+    isPaused = true;
+    pauseBtn.textContent = "Resume";
+    confirmModal.classList.remove("hidden");
+});
+
+confirmNoBtn.addEventListener("click", () => {
+    confirmModal.classList.add("hidden");
+    isPaused = false;
+    pauseBtn.textContent = "Pause";
+});
+
+confirmYesBtn.addEventListener("click", () => {
+    confirmModal.classList.add("hidden");
+    startGame();
+});
 function resizeFxCanvas() {
     fxCanvas.width = window.innerWidth;
     fxCanvas.height = window.innerHeight;
@@ -427,7 +450,7 @@ function startGame() {
     gameOverScreen.classList.add("hidden");
     leaderboard.classList.remove("hidden");
     canvas.classList.remove("hidden");
-    pauseBtn.classList.remove("hidden");
+    mobileControls.classList.remove("hidden");
     isPaused = false;
     pauseBtn.textContent = "Pause";
 
@@ -1027,7 +1050,7 @@ function die(playerWon = false) {
     updateTerritoryCount(); // Final cleanup for the leaderboard UI
     
     document.body.classList.remove("playing-cursor-hide");
-    pauseBtn.classList.add("hidden");
+    mobileControls.classList.add("hidden");
     gameOverScreen.classList.remove("hidden");
 
     if (playerWon) {
@@ -1051,22 +1074,22 @@ function die(playerWon = false) {
 
 window.addEventListener("keydown", (e) => {
     if (!isPlaying) return;
-    let player = entities.find(ent => ent.isReal);
-    if (!player || player.isDead) return;
 
     if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].indexOf(e.code) > -1) {
         e.preventDefault();
     }
 
-    let oldNextDir = { dx: player.nextDir.dx, dy: player.nextDir.dy };
-
     if (e.code === "Space") {
-        e.preventDefault();
         togglePause();
         return;
     }
 
     if (isPaused) return;
+
+    let player = entities.find(ent => ent.isReal);
+    if (!player || player.isDead) return;
+
+    let oldNextDir = { dx: player.nextDir.dx, dy: player.nextDir.dy };
 
     if ((e.key === "ArrowUp" || e.key === "w" || e.key === "W") && player.currentDir.dy !== 1) {
         player.nextDir = { dx: 0, dy: -1 };
@@ -1455,9 +1478,6 @@ function drawGame(progress) {
             fxCtx.fillRect(screenX, screenY, sSize, sSize);
             fxCtx.shadowBlur = 0;
             
-            fxCtx.fillStyle = "rgba(255, 255, 255, 0.3)";
-            fxCtx.fillRect(screenX + 3*scaleX, screenY + 3*scaleY, sSize - 6*scaleX, sSize - 6*scaleY);
-            
             fxCtx.strokeStyle = "rgba(0,0,0,0.15)";
             fxCtx.lineWidth = 1 * scaleX;
             fxCtx.strokeRect(screenX, screenY, sSize, sSize);
@@ -1470,18 +1490,19 @@ function drawGame(progress) {
         ctx.fillStyle = e.color;
         
         if (grid[e.pos.x] && grid[e.pos.x][e.pos.y] === e.id) {
-            ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
-            ctx.shadowBlur = 12;
+            // Intense white glow
+            ctx.shadowColor = "rgba(255, 255, 255, 1.0)";
+            ctx.shadowBlur = 25;
+            ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
+            ctx.shadowBlur = 10; // secondary inner intense glow
+            ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         } else {
+            // Normal shadow
             ctx.shadowColor = "rgba(0,0,0,0.5)";
             ctx.shadowBlur = 5;
+            ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         }
-        
-        ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         ctx.shadowBlur = 0;
-        
-        ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
-        ctx.fillRect(e.visualPos.x + 3, e.visualPos.y + 3, CELL_SIZE - 6, CELL_SIZE - 6);
         
         ctx.strokeStyle = "rgba(0,0,0,0.15)";
         ctx.lineWidth = 1;
@@ -1527,7 +1548,7 @@ function drawGame(progress) {
         }
 
         playerCrown.style.left = (cx - (cw / 2)) + "px";
-        playerCrown.style.top = (cy - ch - (4 * scaleY)) + "px";
+        playerCrown.style.top = (cy - (ch * 0.7)) + "px";
     } else {
         playerCrown.style.display = "none";
     }
