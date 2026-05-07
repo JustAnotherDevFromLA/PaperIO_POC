@@ -583,18 +583,50 @@ function startGame() {
     requestAnimationFrame(gameLoop);
 }
 
+let territoryCanvas = null;
+let tCtx = null;
+
+function initTerritoryCache() {
+    territoryCanvas = document.createElement('canvas');
+    territoryCanvas.width = canvas.width;
+    territoryCanvas.height = canvas.height;
+    tCtx = territoryCanvas.getContext('2d');
+    updateTerritoryCount();
+}
+
 function updateTerritoryCount() {
     let entityMap = {};
     for (let e of entities) {
         e.territoryCount = 0;
         entityMap[e.id] = e;
     }
+
+    if (tCtx) tCtx.clearRect(0, 0, territoryCanvas.width, territoryCanvas.height);
+    
+    let regionsByColor = {};
+
     for (let x = 0; x < GRID_SIZE; x++) {
         for (let y = 0; y < GRID_SIZE; y++) {
             let id = grid[x][y];
             if (id > 0 && entityMap[id]) {
                 entityMap[id].territoryCount++;
+                if (tCtx) {
+                    let c = entityMap[id].color;
+                    if (!regionsByColor[c]) regionsByColor[c] = [];
+                    regionsByColor[c].push({x, y});
+                }
             }
+        }
+    }
+
+    if (tCtx) {
+        for (let c in regionsByColor) {
+            tCtx.fillStyle = c;
+            tCtx.beginPath();
+            for (let p of regionsByColor[c]) {
+                tCtx.rect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            }
+            tCtx.fill();
         }
     }
     
@@ -1479,30 +1511,9 @@ function drawGame(progress) {
     if (!gridCanvas) initGridCache();
     ctx.drawImage(gridCanvas, 0, 0);
 
-    // Territories
-    let colorMap = {};
-    for (let e of entities) colorMap[e.id] = e.color;
-    
-    let regionsByColor = {};
-    for (let x = 0; x < GRID_SIZE; x++) {
-        for (let y = 0; y < GRID_SIZE; y++) {
-            let id = grid[x][y];
-            if (id > 0 && colorMap[id]) {
-                let c = colorMap[id];
-                if (!regionsByColor[c]) regionsByColor[c] = [];
-                regionsByColor[c].push({x, y});
-            }
-        }
-    }
-    
-    for (let c in regionsByColor) {
-        ctx.fillStyle = c;
-        ctx.beginPath();
-        for (let p of regionsByColor[c]) {
-            ctx.rect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-        }
-        ctx.fill();
-    }
+    // Territories from Cached Offscreen Canvas
+    if (!territoryCanvas) initTerritoryCache();
+    ctx.drawImage(territoryCanvas, 0, 0);
 
     // Paths
     ctx.globalAlpha = 0.5;
@@ -1613,16 +1624,14 @@ function drawGame(progress) {
         ctx.fillStyle = e.color;
         
         if (grid[e.pos.x] && grid[e.pos.x][e.pos.y] === e.id) {
-            // Intense white glow
-            ctx.shadowColor = "rgba(255, 255, 255, 1.0)";
-            ctx.shadowBlur = 25;
-            ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
-            ctx.shadowBlur = 10; // secondary inner intense glow
+            // Intense white glow optimized (single pass)
+            ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
+            ctx.shadowBlur = 15;
             ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         } else {
-            // Normal shadow
-            ctx.shadowColor = "rgba(0,0,0,0.5)";
-            ctx.shadowBlur = 5;
+            // Normal shadow optimized
+            ctx.shadowColor = "rgba(0,0,0,0.4)";
+            ctx.shadowBlur = 4;
             ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         }
         ctx.shadowBlur = 0;
@@ -1670,9 +1679,9 @@ function drawGame(progress) {
             crownSvg.setAttribute('height', ch);
         }
 
-        playerCrown.style.left = cx + "px";
-        playerCrown.style.top = cy + "px";
-        playerCrown.style.transform = "translate(-50%, -85%)";
+        playerCrown.style.left = "0px";
+        playerCrown.style.top = "0px";
+        playerCrown.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -85%)`;
     } else {
         playerCrown.style.display = "none";
     }
