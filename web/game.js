@@ -746,7 +746,10 @@ function killEntity(target, killer) {
     
     target.deathMarkerAlpha = 1.0;
     target.deathCount = (target.deathCount || 0) + 1;
-    target.respawnTimer = 10 + ((target.deathCount - 1) * 5);
+    let baseTimer = 10 + ((target.deathCount - 1) * 5);
+    // Synchronize to the global 1-second interval so ALL timers tick down at the exact same frame
+    let globalTimeFrac = (performance.now() / 1000) % 1.0;
+    target.respawnTimer = baseTimer + (1.0 - globalTimeFrac) - 0.001;
     
     updateTerritoryCount(); // Force leaderboard redraw to show death state immediately
 }
@@ -1700,7 +1703,6 @@ function drawGame(progress) {
 
     let king = entities.find(e => e.id === kingId);
     if (king && !king.isDead && (isPlaying || isWon)) {
-        playerCrown.style.display = "block";
         
         // Draw native canvas crown for the king
         if (!isPlaying && isWon) {

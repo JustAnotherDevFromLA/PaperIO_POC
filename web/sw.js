@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paper-io-v77';
+const CACHE_NAME = 'paper-io-v78';
 const ASSETS = [
     './',
     './index.html',
@@ -31,11 +31,14 @@ self.addEventListener('activate', (e) => {
     );
 });
 
-self.addEventListener('fetch', (e) => {
-    const url = new URL(e.request.url);
+self.addEventListener('fetch', e => {
+    // ONLY handle http and https schemes (ignore chrome-extension:// etc to prevent cache.put crashes)
+    if (!e.request.url.startsWith('http')) {
+        return;
+    }
 
-    // Cache-first for /assets/ folder (immutable assets)
-    if (url.pathname.includes('/assets/')) {
+    if (e.request.url.includes('.mp3') || e.request.url.includes('.wav') || e.request.url.includes('.png')) {
+        // Cache-First Strategy for Media
         e.respondWith(
             caches.match(e.request).then(cachedResponse => {
                 if (cachedResponse) {
