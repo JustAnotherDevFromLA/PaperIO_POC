@@ -270,23 +270,29 @@ function pickColor(e) {
     }
     let scaleX = colorWheelCanvas.width / rect.width;
     let scaleY = colorWheelCanvas.height / rect.height;
-    x = Math.round(x * scaleX);
-    y = Math.round(y * scaleY);
+    x = x * scaleX;
+    y = y * scaleY;
 
     let radius = colorWheelCanvas.width / 2;
     let dx = x - radius;
     let dy = y - radius;
-    if (Math.sqrt(dx * dx + dy * dy) <= radius) {
-        let pixel = cwCtx.getImageData(x, y, 1, 1).data;
-        if (pixel[3] > 0) {
-            let hex = "#" + ("000000" + ((pixel[0] << 16) | (pixel[1] << 8) | pixel[2]).toString(16)).slice(-6);
-            selectedColorHex = hex;
-            colorWheelPreview.style.backgroundColor = hex;
-            const customSwatch = document.querySelector('.custom-color');
-            if (customSwatch) customSwatch.style.borderColor = hex;
-        }
+    let distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance <= radius) {
+        let angle = Math.atan2(dy, dx);
+        let hue = (angle + Math.PI) / (2 * Math.PI) * 360;
+        let sat = (distance / radius) * 100;
+        let rgb = hslToRgb(hue / 360, sat / 100, 0.5);
+        let hex = "#" + ("000000" + ((rgb[0] << 16) | (rgb[1] << 8) | rgb[2]).toString(16)).slice(-6);
+        
+        selectedColorHex = hex;
+        colorWheelPreview.style.backgroundColor = hex;
+        const customSwatch = document.querySelector('.custom-color');
+        if (customSwatch) customSwatch.style.borderColor = hex;
     }
 }
+
+window.addEventListener('contextmenu', e => e.preventDefault());
 
 let isDraggingColor = false;
 if (colorWheelCanvas) {
@@ -294,9 +300,10 @@ if (colorWheelCanvas) {
     colorWheelCanvas.addEventListener("mousemove", (e) => { if (isDraggingColor) pickColor(e); });
     window.addEventListener("mouseup", () => { isDraggingColor = false; });
 
-    colorWheelCanvas.addEventListener("touchstart", (e) => { isDraggingColor = true; pickColor(e); }, {passive: false});
+    colorWheelCanvas.addEventListener("touchstart", (e) => { e.preventDefault(); isDraggingColor = true; pickColor(e); }, {passive: false});
     colorWheelCanvas.addEventListener("touchmove", (e) => { if (isDraggingColor) { e.preventDefault(); pickColor(e); } }, {passive: false});
     window.addEventListener("touchend", () => { isDraggingColor = false; });
+    window.addEventListener("touchcancel", () => { isDraggingColor = false; });
 }
 
 if (colorWheelConfirmBtn) {
