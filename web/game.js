@@ -1726,7 +1726,7 @@ function drawGame(progress) {
             
             // Draw crown
             ctx.scale(1.2, 1.2); // scale crown slightly to fit nice
-            ctx.translate(0, -8); // offset above player
+            ctx.translate(0, -4); // offset above player
             
             ctx.beginPath();
             ctx.moveTo(-7, 0);
@@ -1760,7 +1760,7 @@ function drawGame(progress) {
             
             // Draw crown
             ctx.scale(1.2, 1.2); // scale crown slightly
-            ctx.translate(0, -8); // offset above player
+            ctx.translate(0, -4); // offset above player
             
             ctx.beginPath();
             ctx.moveTo(-7, 0);
