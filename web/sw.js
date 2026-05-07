@@ -1,12 +1,11 @@
-const CACHE_NAME = 'paper-io-v67';
+const CACHE_NAME = 'paper-io-v68';
 const ASSETS = [
     './',
     './index.html',
     './style.css',
     './game.js',
     './manifest.json',
-    './assets/menu_bg.png',
-    './assets/fireworks.mp3'
+    './assets/menu_bg.png'
 ];
 
 self.addEventListener('install', (e) => {
@@ -33,14 +32,39 @@ self.addEventListener('activate', (e) => {
 });
 
 self.addEventListener('fetch', (e) => {
-    e.respondWith(
-        caches.match(e.request).then(response => {
-            return response || fetch(e.request).then(fetchRes => {
-                return caches.open(CACHE_NAME).then(cache => {
-                    cache.put(e.request.url, fetchRes.clone());
-                    return fetchRes;
+    const url = new URL(e.request.url);
+
+    // Cache-first for /assets/ folder (immutable assets)
+    if (url.pathname.includes('/assets/')) {
+        e.respondWith(
+            caches.match(e.request).then(cachedResponse => {
+                if (cachedResponse) {
+                    return cachedResponse;
+                }
+                return fetch(e.request).then(networkResponse => {
+                    return caches.open(CACHE_NAME).then(cache => {
+                        cache.put(e.request, networkResponse.clone());
+                        return networkResponse;
+                    });
                 });
+            })
+        );
+        return;
+    }
+
+    // Stale-While-Revalidate for HTML/JS/CSS
+    e.respondWith(
+        caches.match(e.request).then(cachedResponse => {
+            const networkFetch = fetch(e.request).then(networkResponse => {
+                return caches.open(CACHE_NAME).then(cache => {
+                    cache.put(e.request, networkResponse.clone());
+                    return networkResponse;
+                });
+            }).catch(() => {
+                // If network fails, return cached response even if we don't have network to revalidate
             });
+
+            return cachedResponse || networkFetch;
         })
     );
 });
