@@ -1247,7 +1247,7 @@ function die(playerWon = false) {
         
         if (index === 0) {
             rank.innerHTML = `<span style="position: relative; display: inline-block;">#1
-                <svg width="14" height="11" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: -7px; left: -8px; transform: rotate(-25deg); filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); z-index: 1;">
+                <svg width="18" height="14" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: -4px; left: -2px; transform: rotate(-15deg); filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); z-index: 1;">
                     <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00"/>
                 </svg>
             </span>`;
@@ -1736,96 +1736,39 @@ function drawGame(progress) {
     });
 
     let king = entities.find(e => e.id === kingId);
-    if (king && !king.isDead && (isPlaying || isWon)) {
+    if (king && !king.isDead && isPlaying) {
+        // Normal play crown rendering
+        ctx.save();
+        ctx.translate(king.visualPos.x + CELL_SIZE / 2, king.visualPos.y);
         
-        // Draw native canvas crown for the king
-        if (!isPlaying && isWon) {
-            let t = (performance.now() / 1000) % 2.0;
-            let squareYOffset = 0;
-            let crownToss = 0;
-
-            if (t < 0.2) {
-                let u = t / 0.2;
-                squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
-            } else if (t < 0.8) {
-                let u = (t - 0.2) / 0.6;
-                squareYOffset = -Math.sin(u * Math.PI) * 40;
-            } else if (t < 1.0) {
-                let u = (t - 0.8) / 0.2;
-                squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
-            }
-
-            if (t >= 0.2 && t <= 0.9) {
-                let tossU = (t - 0.2) / 0.7;
-                crownToss = Math.sin(tossU * Math.PI) * 25; // flies 25px above head
-            }
-
-            ctx.save();
-            ctx.translate(king.visualPos.x + CELL_SIZE / 2, king.visualPos.y + squareYOffset - crownToss);
-            
-            // Draw crown
-            ctx.scale(1.2, 1.2); // scale crown slightly to fit nice
-            ctx.translate(0, -4); // offset above player
-            
-            ctx.beginPath();
-            ctx.moveTo(-7, 0);
-            ctx.lineTo(7, 0);
-            ctx.lineTo(9, -10);
-            ctx.lineTo(3.5, -4);
-            ctx.lineTo(0, -13);
-            ctx.lineTo(-3.5, -4);
-            ctx.lineTo(-9, -10);
-            ctx.closePath();
-            
-            ctx.shadowColor = "rgba(0,0,0,0.4)";
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetY = 2;
-            
-            ctx.fillStyle = "#FFCC00";
-            ctx.fill();
-            
-            // Draw a subtle white stroke for better visibility
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = "white";
-            ctx.stroke();
-            
-            ctx.restore();
-        } else {
-            // Normal play crown rendering
-            ctx.save();
-            ctx.translate(king.visualPos.x + CELL_SIZE / 2, king.visualPos.y);
-            
-            // Draw crown
-            ctx.scale(1.2, 1.2); // scale crown slightly
-            ctx.translate(0, -4); // offset above player
-            
-            ctx.beginPath();
-            ctx.moveTo(-7, 0);
-            ctx.lineTo(7, 0);
-            ctx.lineTo(9, -10);
-            ctx.lineTo(3.5, -4);
-            ctx.lineTo(0, -13);
-            ctx.lineTo(-3.5, -4);
-            ctx.lineTo(-9, -10);
-            ctx.closePath();
-            
-            ctx.shadowColor = "rgba(0,0,0,0.4)";
-            ctx.shadowBlur = 4;
-            ctx.shadowOffsetY = 2;
-            
-            ctx.fillStyle = "#FFCC00";
-            ctx.fill();
-            
-            ctx.shadowBlur = 0;
-            ctx.shadowOffsetY = 0;
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = "white";
-            ctx.stroke();
-            
-            ctx.restore();
-        }
+        // Draw crown
+        ctx.scale(1.2, 1.2); // scale crown slightly
+        ctx.translate(0, -4); // offset above player
+        
+        ctx.beginPath();
+        ctx.moveTo(-7, 0);
+        ctx.lineTo(7, 0);
+        ctx.lineTo(9, -10);
+        ctx.lineTo(3.5, -4);
+        ctx.lineTo(0, -13);
+        ctx.lineTo(-3.5, -4);
+        ctx.lineTo(-9, -10);
+        ctx.closePath();
+        
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 2;
+        
+        ctx.fillStyle = "#FFCC00";
+        ctx.fill();
+        
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = "white";
+        ctx.stroke();
+        
+        ctx.restore();
     }
 
     // Camera follow logic
@@ -1858,6 +1801,45 @@ function drawGame(progress) {
             offsetY = minOffsetY > maxOffsetY ? (viewportHeight - bh) / 2 : Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
             
             boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+
+            let winCrown = document.getElementById("win-crown-overlay");
+            if (winCrown) {
+                if (!isPlaying && isWon) {
+                    let king = entities.find(e => e.id === kingId);
+                    if (king) {
+                        let t = (performance.now() / 1000) % 2.0;
+                        let squareYOffset = 0;
+                        let crownToss = 0;
+
+                        if (t < 0.2) {
+                            let u = t / 0.2;
+                            squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
+                        } else if (t < 0.8) {
+                            let u = (t - 0.2) / 0.6;
+                            squareYOffset = -Math.sin(u * Math.PI) * 40;
+                        } else if (t < 1.0) {
+                            let u = (t - 0.8) / 0.2;
+                            squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
+                        }
+
+                        if (t >= 0.2 && t <= 0.9) {
+                            let tossU = (t - 0.2) / 0.7;
+                            crownToss = Math.sin(tossU * Math.PI) * 25;
+                        }
+
+                        let screenX = (king.visualPos.x + CELL_SIZE / 2) * scaleX + offsetX;
+                        let baseOffsetY = -4 * scaleY;
+                        let screenY = (king.visualPos.y + squareYOffset - crownToss) * scaleY + offsetY + baseOffsetY;
+
+                        winCrown.style.display = "block";
+                        winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${1.2 * scaleX})`;
+                    } else {
+                        winCrown.style.display = "none";
+                    }
+                } else {
+                    winCrown.style.display = "none";
+                }
+            }
         }
     }
 }
