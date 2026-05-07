@@ -1685,5 +1685,25 @@ function drawGame(progress) {
     } else {
         playerCrown.style.display = "none";
     }
+
+    // Camera follow logic
+    let myPlayer = entities.find(e => e.isReal);
+    if (myPlayer) {
+        let boardWrapper = document.getElementById('board-wrapper');
+        let scaleX = canvas.clientWidth / 800;
+        let scaleY = canvas.clientHeight / 800;
+        let px = (myPlayer.visualPos.x + CELL_SIZE / 2) * scaleX;
+        let py = (myPlayer.visualPos.y + CELL_SIZE / 2) * scaleY;
+        
+        let viewportWidth = window.innerWidth;
+        let viewportHeight = window.innerHeight;
+        
+        let offsetX = viewportWidth / 2 - px;
+        let offsetY = viewportHeight / 2 - py;
+        
+        if (boardWrapper) {
+            boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+        }
+    }
 }
 

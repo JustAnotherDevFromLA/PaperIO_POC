@@ -7,13 +7,10 @@
 
 body {
     background-color: #e6e6e6;
-    /* Color(white: 0.90) equivalent */
-    display: flex;
-    justify-content: center;
-    align-items: safe center;
-    min-height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
     color: #333;
-    padding: 10px;
     touch-action: none;
     -webkit-user-select: none;
     user-select: none;
@@ -22,12 +19,11 @@ body {
 }
 
 #app-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-    width: 100%;
+    display: block;
+    width: 100vw;
+    height: 100dvh;
+    position: relative;
+    overflow: hidden;
 }
 
 /* Leaderboard */
@@ -41,8 +37,13 @@ body {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    z-index: 5;
+    z-index: 50;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    
+    /* Position higher */
+    position: absolute;
+    top: max(env(safe-area-inset-top), 10px);
+    right: max(env(safe-area-inset-right), 10px);
 }
 
 .leaderboard-entry {
@@ -81,35 +82,46 @@ body {
 
 /* Game Board Frame */
 #canvas-container {
-    position: relative;
-    /* Increase board size relative to window, remove 800px hard limit */
-    width: min(100vw - 40px, 100dvh - 200px);
-    height: min(100vw - 40px, 100dvh - 200px);
-    max-width: 100%;
-    max-height: 100%;
-    background-color: white;
-    /* Flush square as requested */
-    border-radius: 0;
-    box-shadow: none;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    overflow: visible;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100dvh;
+    background-color: #2c3e50; /* Darker outside to distinguish bounds */
+    overflow: hidden;
+}
+
+#board-wrapper {
+    position: absolute;
+    /* Zoomed in 3x relative to the smallest screen dimension */
+    width: 300vmin;
+    height: 300vmin;
+    top: 0;
+    left: 0;
 }
 
 #game-canvas {
     width: 100%;
     height: 100%;
-    /* Keep pixel art crisp if needed, though we draw shapes */
+    display: block;
+    /* Strong edge border to distinguish map bounds */
+    border: 8px solid rgba(0, 0, 0, 0.8);
+    box-shadow: 0 0 40px rgba(0,0,0,0.7);
     image-rendering: pixelated;
+    background: white;
 }
 
 #mobile-controls {
-    display: none; /* hidden by default on desktop */
+    display: none;
     flex-direction: column;
     gap: 8px;
-    margin-bottom: max(env(safe-area-inset-bottom), 10px);
     width: 160px;
+    /* Position lower */
+    position: absolute;
+    bottom: max(env(safe-area-inset-bottom), 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 50;
 }
 
 @media (hover: none) and (pointer: coarse) {
