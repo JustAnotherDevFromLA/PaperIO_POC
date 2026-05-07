@@ -40,10 +40,11 @@ body {
     z-index: 50;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
     
-    /* Position higher */
+    /* Position top middle */
     position: absolute;
     top: max(env(safe-area-inset-top), 10px);
-    right: max(env(safe-area-inset-right), 10px);
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 .leaderboard-entry {

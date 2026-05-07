@@ -1690,18 +1690,31 @@ function drawGame(progress) {
     let myPlayer = entities.find(e => e.isReal);
     if (myPlayer) {
         let boardWrapper = document.getElementById('board-wrapper');
-        let scaleX = canvas.clientWidth / 800;
-        let scaleY = canvas.clientHeight / 800;
-        let px = (myPlayer.visualPos.x + CELL_SIZE / 2) * scaleX;
-        let py = (myPlayer.visualPos.y + CELL_SIZE / 2) * scaleY;
-        
-        let viewportWidth = window.innerWidth;
-        let viewportHeight = window.innerHeight;
-        
-        let offsetX = viewportWidth / 2 - px;
-        let offsetY = viewportHeight / 2 - py;
-        
         if (boardWrapper) {
+            let scaleX = canvas.clientWidth / 800;
+            let scaleY = canvas.clientHeight / 800;
+            let px = (myPlayer.visualPos.x + CELL_SIZE / 2) * scaleX;
+            let py = (myPlayer.visualPos.y + CELL_SIZE / 2) * scaleY;
+            
+            let viewportWidth = window.innerWidth;
+            let viewportHeight = window.innerHeight;
+            
+            let offsetX = viewportWidth / 2 - px;
+            let offsetY = viewportHeight / 2 - py;
+            
+            // Clamp camera to prevent seeing too much outside the board
+            let bw = boardWrapper.clientWidth;
+            let bh = boardWrapper.clientHeight;
+            let buffer = 60; // Allow seeing 60px outside the map
+            
+            let maxOffsetX = buffer;
+            let minOffsetX = viewportWidth - bw - buffer;
+            offsetX = minOffsetX > maxOffsetX ? (viewportWidth - bw) / 2 : Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
+            
+            let maxOffsetY = buffer;
+            let minOffsetY = viewportHeight - bh - buffer;
+            offsetY = minOffsetY > maxOffsetY ? (viewportHeight - bh) / 2 : Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
+            
             boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
         }
     }
