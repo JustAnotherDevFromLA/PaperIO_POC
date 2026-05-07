@@ -39,7 +39,7 @@ body {
     gap: 6px;
     /* Position top left, below gear */
     position: absolute;
-    top: calc(max(env(safe-area-inset-top), 10px) + 48px);
+    top: calc(max(env(safe-area-inset-top), 10px) + 26px);
     left: max(env(safe-area-inset-left), 10px);
     transform: none;
     z-index: 50;

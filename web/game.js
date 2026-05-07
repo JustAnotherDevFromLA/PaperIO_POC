@@ -707,7 +707,7 @@ function updateTerritoryCount() {
             }
         } else if (index === 0) {
             // Crown for the current leader
-            square.innerHTML = `<svg width="14" height="12" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4));"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
+            square.innerHTML = `<svg width="14" height="12" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); transform: translateY(1px);"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
         }
         
         leaderboard.appendChild(square);
