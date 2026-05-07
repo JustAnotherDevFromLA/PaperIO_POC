@@ -134,43 +134,57 @@ function togglePause() {
     isPaused = !isPaused;
 }
 
-settingsBtn.addEventListener("click", () => {
-    if (!isPlaying) return;
-    isPaused = true;
-    settingsModal.classList.remove("hidden");
-});
+if (settingsBtn) {
+    settingsBtn.addEventListener("click", () => {
+        if (!isPlaying) return;
+        isPaused = true;
+        settingsModal.classList.remove("hidden");
+    });
+}
 
-settingsResumeBtn.addEventListener("click", () => {
-    isPaused = false;
-    settingsModal.classList.add("hidden");
-});
+if (settingsResumeBtn) {
+    settingsResumeBtn.addEventListener("click", () => {
+        isPaused = false;
+        settingsModal.classList.add("hidden");
+    });
+}
 
-settingsSoundBtn.addEventListener("click", () => {
-    isSoundEnabled = !isSoundEnabled;
-    settingsSoundBtn.textContent = isSoundEnabled ? "Sound: ON" : "Sound: OFF";
-});
+if (settingsSoundBtn) {
+    settingsSoundBtn.addEventListener("click", () => {
+        isSoundEnabled = !isSoundEnabled;
+        settingsSoundBtn.textContent = isSoundEnabled ? "Sound: ON" : "Sound: OFF";
+    });
+}
 
-settingsRestartBtn.addEventListener("click", () => {
-    settingsModal.classList.add("hidden");
-    confirmModal.classList.remove("hidden");
-});
+if (settingsRestartBtn) {
+    settingsRestartBtn.addEventListener("click", () => {
+        settingsModal.classList.add("hidden");
+        confirmModal.classList.remove("hidden");
+    });
+}
 
-settingsQuitBtn.addEventListener("click", () => {
-    settingsModal.classList.add("hidden");
-    // Show confirmation or just quit
-    isPaused = false;
-    quitToMenu();
-});
+if (settingsQuitBtn) {
+    settingsQuitBtn.addEventListener("click", () => {
+        settingsModal.classList.add("hidden");
+        // Show confirmation or just quit
+        isPaused = false;
+        quitToMenu();
+    });
+}
 
-confirmNoBtn.addEventListener("click", () => {
-    confirmModal.classList.add("hidden");
-    settingsModal.classList.remove("hidden"); // go back to settings
-});
+if (confirmNoBtn) {
+    confirmNoBtn.addEventListener("click", () => {
+        confirmModal.classList.add("hidden");
+        settingsModal.classList.remove("hidden"); // go back to settings
+    });
+}
 
-confirmYesBtn.addEventListener("click", () => {
-    confirmModal.classList.add("hidden");
-    startGame();
-});
+if (confirmYesBtn) {
+    confirmYesBtn.addEventListener("click", () => {
+        confirmModal.classList.add("hidden");
+        startGame();
+    });
+}
 function resizeFxCanvas() {
     fxCanvas.width = window.innerWidth;
     fxCanvas.height = window.innerHeight;
@@ -599,7 +613,7 @@ function startGame() {
     leaderboard.classList.remove("hidden");
     canvas.classList.remove("hidden");
     isPaused = false;
-    settingsBtn.classList.remove("hidden");
+    if (settingsBtn) settingsBtn.classList.remove("hidden");
 
     isPlaying = true;
     document.body.classList.add("playing-cursor-hide");
@@ -1188,7 +1202,7 @@ function die(playerWon = false) {
     updateTerritoryCount(); // Final cleanup for the leaderboard UI
     
     document.body.classList.remove("playing-cursor-hide");
-    settingsBtn.classList.add("hidden");
+    if (settingsBtn) settingsBtn.classList.add("hidden");
     gameOverScreen.classList.remove("hidden");
 
     if (playerWon) {
