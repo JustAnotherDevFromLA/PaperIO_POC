@@ -1202,6 +1202,53 @@ function die(playerWon = false) {
     
     updateTerritoryCount(); // Final cleanup for the leaderboard UI
     
+    // Build legacy detailed leaderboard for the Game Over screen
+    let players = entities.map(e => ({
+        id: e.id,
+        name: e.name,
+        color: e.color,
+        percent: (e.territoryCount / TOTAL_CELLS) * 100,
+        killCount: e.killCount || 0,
+        isReal: e.isReal
+    }));
+    players.sort((a, b) => b.percent - a.percent);
+
+    gameOverLeaderboard.innerHTML = "";
+    gameOverLeaderboard.style.width = "100%";
+    gameOverLeaderboard.style.marginBottom = "20px";
+
+    players.forEach((p, index) => {
+        const entry = document.createElement("div");
+        entry.className = "leaderboard-entry";
+        if (p.isReal) entry.classList.add("highlighted-player");
+
+        const rank = document.createElement("span");
+        rank.className = "leaderboard-rank";
+        rank.textContent = `#${index + 1}`;
+
+        const name = document.createElement("span");
+        name.className = "leaderboard-name";
+        name.style.color = p.color;
+
+        if (index === 0) {
+            name.innerHTML = `<svg width="16" height="13" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="display:inline-block; vertical-align:-1px; margin-right:4px;">
+                <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.3));"/>
+            </svg>`;
+            name.appendChild(document.createTextNode(p.name));
+        } else {
+            name.textContent = p.name;
+        }
+
+        const score = document.createElement("span");
+        score.className = "leaderboard-score";
+        score.innerHTML = `<span style="color: #8E8E93; font-size: 0.9em;">⚔️ ${p.killCount}</span> &nbsp;|&nbsp; ${Math.round(p.percent)}%`;
+
+        entry.appendChild(rank);
+        entry.appendChild(name);
+        entry.appendChild(score);
+        gameOverLeaderboard.appendChild(entry);
+    });
+
     document.body.classList.remove("playing-cursor-hide");
     if (settingsBtn) settingsBtn.classList.add("hidden");
     gameOverScreen.classList.remove("hidden");
@@ -1217,7 +1264,6 @@ function die(playerWon = false) {
     }
 
     leaderboard.classList.add("hidden");
-    gameOverLeaderboard.innerHTML = leaderboard.innerHTML;
     
     particles = [];
     fireworkTimer = 1.0;

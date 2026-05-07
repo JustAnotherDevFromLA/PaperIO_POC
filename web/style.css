@@ -387,4 +387,37 @@ button:active {
 
 .playing-cursor-hide {
     cursor: none !important;
+}/* Legacy Leaderboard Classes for Game Over Screen */
+.leaderboard-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+    font-weight: bold;
+    padding: 4px 0;
+}
+
+.leaderboard-rank {
+    width: 20px;
+    color: #8E8E93;
+    font-size: 11px;
+}
+
+.leaderboard-name {
+    flex-grow: 1;
+    margin: 0 10px;
+    white-space: nowrap;
+}
+
+.leaderboard-score {
+    text-align: right;
+    color: #333;
+    font-variant-numeric: tabular-nums;
+}
+
+.highlighted-player {
+    background: rgba(0, 0, 0, 0.08);
+    border-radius: 6px;
+    padding: 4px 8px;
+    margin: -4px -8px;
 }
