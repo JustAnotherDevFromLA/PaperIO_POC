@@ -112,7 +112,7 @@ let lastTime = 0;
 let moveTimer = 0;
 const moveInterval = 100; // ms per grid step
 
-const playerCrown = document.getElementById("player-crown");
+
 const settingsBtn = document.getElementById("settings-btn");
 const settingsModal = document.getElementById("settings-modal");
 const settingsResumeBtn = document.getElementById("settings-resume-btn");
@@ -1474,19 +1474,30 @@ function gameLoop(time) {
     }
 
     // Update death cooldowns
+    let timerUpdated = false;
     entities.forEach(e => {
         if (e.isDead && e.respawnTimer > 0) {
             e.respawnTimer -= dt / 1000;
             let timerEl = document.getElementById(`timer-${e.id}`);
             if (timerEl) {
-                timerEl.textContent = `${Math.ceil(e.respawnTimer)}`;
+                let newText = `${Math.ceil(e.respawnTimer)}`;
+                if (timerEl.textContent !== newText) {
+                    timerEl.textContent = newText;
+                    timerUpdated = true;
+                }
             }
             if (e.respawnTimer <= 0) {
                 e.respawnTimer = 0;
                 respawnBot(e); // This now respawns both bots and the real player
+                timerUpdated = true;
             }
         }
     });
+    
+    // Force leaderboard resort when timers change
+    if (timerUpdated) {
+        updateTerritoryCount();
+    }
 
     moveTimer += dt;
     while (moveTimer >= moveInterval) {
@@ -1644,9 +1655,8 @@ function drawGame(progress) {
     let king = entities.find(e => e.id === kingId);
     if (king && !king.isDead && (isPlaying || isWon)) {
         playerCrown.style.display = "block";
-        let px = ((king.visualPos.x + CELL_SIZE / 2) / 800) * 100;
-        let py = (king.visualPos.y / 800) * 100;
         
+        // Draw native canvas crown for the king
         if (!isPlaying && isWon) {
             let t = (performance.now() / 1000) % 2.0;
             let jump = 0;
@@ -1663,23 +1673,72 @@ function drawGame(progress) {
                 squashOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
             }
 
-            py -= (jump / 800) * 100;
-            py += (squashOffset / 800) * 100;
+            ctx.save();
+            ctx.translate(king.visualPos.x + CELL_SIZE / 2, king.visualPos.y - jump + squashOffset);
+            
+            // Draw crown
+            ctx.scale(1.2, 1.2); // scale crown slightly to fit nice
+            ctx.translate(0, -8); // offset above player
+            
+            ctx.beginPath();
+            ctx.moveTo(-7, 0);
+            ctx.lineTo(7, 0);
+            ctx.lineTo(9, -10);
+            ctx.lineTo(3.5, -4);
+            ctx.lineTo(0, -13);
+            ctx.lineTo(-3.5, -4);
+            ctx.lineTo(-9, -10);
+            ctx.closePath();
+            
+            ctx.shadowColor = "rgba(0,0,0,0.4)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.fillStyle = "#FFCC00";
+            ctx.fill();
+            
+            // Draw a subtle white stroke for better visibility
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "white";
+            ctx.stroke();
+            
+            ctx.restore();
+        } else {
+            // Normal play crown rendering
+            ctx.save();
+            ctx.translate(king.visualPos.x + CELL_SIZE / 2, king.visualPos.y);
+            
+            // Draw crown
+            ctx.scale(1.2, 1.2); // scale crown slightly
+            ctx.translate(0, -8); // offset above player
+            
+            ctx.beginPath();
+            ctx.moveTo(-7, 0);
+            ctx.lineTo(7, 0);
+            ctx.lineTo(9, -10);
+            ctx.lineTo(3.5, -4);
+            ctx.lineTo(0, -13);
+            ctx.lineTo(-3.5, -4);
+            ctx.lineTo(-9, -10);
+            ctx.closePath();
+            
+            ctx.shadowColor = "rgba(0,0,0,0.4)";
+            ctx.shadowBlur = 4;
+            ctx.shadowOffsetY = 2;
+            
+            ctx.fillStyle = "#FFCC00";
+            ctx.fill();
+            
+            ctx.shadowBlur = 0;
+            ctx.shadowOffsetY = 0;
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = "white";
+            ctx.stroke();
+            
+            ctx.restore();
         }
-
-        // Just let CSS handle the width of the SVG relative to vmin or keep it fixed, we'll keep the scale relative to viewport.
-        let scaleX = canvas.clientWidth / 800;
-        let crownSvg = playerCrown.querySelector('svg');
-        if (crownSvg) {
-            crownSvg.setAttribute('width', 24 * scaleX);
-            crownSvg.setAttribute('height', 18 * scaleX); // use scaleX for both to maintain aspect ratio perfectly
-        }
-
-        playerCrown.style.left = `${px}%`;
-        playerCrown.style.top = `${py}%`;
-        playerCrown.style.transform = `translate(-50%, -85%)`;
-    } else {
-        playerCrown.style.display = "none";
     }
 
     // Camera follow logic
