@@ -3,8 +3,10 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self';">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self';">
     <title>Papel.io</title>
 
     <!-- SEO & Open Graph -->
@@ -18,18 +20,18 @@
     <meta name="twitter:title" content="Paper.io POC">
     <meta name="twitter:description" content="Capture the board in this blazing fast HTML5 game.">
     <meta name="twitter:image" content="https://papel.io/assets/og-image.png">
-    
+
     <!-- Icons -->
     <link rel="icon" href="assets/favicon.ico" sizes="any">
     <link rel="icon" href="assets/favicon-32x32.png" type="image/png" sizes="32x32">
     <link rel="icon" href="assets/favicon-16x16.png" type="image/png" sizes="16x16">
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
-    
+
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="manifest.json">
     <link rel="preload" href="assets/menu_bg.png" as="image">
     <meta name="theme-color" content="#e6e6e6">
-    
+
     <!-- iOS Native App Capabilities -->
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -39,9 +41,10 @@
 
 <body>
     <div id="app-container">
-        
+
         <!-- Foreground FX Canvas -->
-        <canvas id="fx-canvas" style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999;"></canvas>
+        <canvas id="fx-canvas"
+            style="position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 9999;"></canvas>
 
 
 
@@ -74,7 +77,8 @@
                         <div class="color-swatch" data-color="green" style="background-color: #34C759;"></div>
                         <div class="color-swatch" data-color="yellow" style="background-color: #FFCC00;"></div>
                         <div class="color-swatch" data-color="pink" style="background-color: #FF69B4;"></div>
-                        <div class="color-swatch custom-color" data-color="custom" style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); position: relative; overflow: hidden;">
+                        <div class="color-swatch custom-color" data-color="custom"
+                            style="background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red); position: relative; overflow: hidden;">
                         </div>
                     </div>
                 </div>
@@ -82,10 +86,14 @@
 
             <!-- Custom Color Modal -->
             <div id="custom-color-modal" class="hidden">
-                <div class="modal-content-scale" style="background: white; padding: 20px; border-radius: 16px; display: flex; flex-direction: column; align-items: center;">
-                    <canvas id="color-wheel-canvas" width="200" height="200" style="border-radius: 50%; cursor: crosshair; touch-action: none;"></canvas>
-                    <div style="margin-top: 15px; width: 40px; height: 40px; border-radius: 8px; border: 2px solid #ccc;" id="color-wheel-preview"></div>
-                    <button id="color-wheel-confirm-btn" style="margin-top: 15px; width: 140px; font-size: 16px; padding: 10px 0;">Confirm</button>
+                <div class="modal-content-scale"
+                    style="background: white; padding: 20px; border-radius: 16px; display: flex; flex-direction: column; align-items: center;">
+                    <canvas id="color-wheel-canvas" width="200" height="200"
+                        style="border-radius: 50%; cursor: crosshair; touch-action: none;"></canvas>
+                    <div style="margin-top: 15px; width: 40px; height: 40px; border-radius: 8px; border: 2px solid #ccc;"
+                        id="color-wheel-preview"></div>
+                    <button id="color-wheel-confirm-btn"
+                        style="margin-top: 15px; width: 140px; font-size: 16px; padding: 10px 0;">Confirm</button>
                 </div>
             </div>
 
@@ -93,7 +101,9 @@
             <div id="game-over-screen" class="hidden">
                 <div class="modal-content-scale">
                     <h1 id="game-over-title">Game Over!</h1>
-                    <div id="game-over-leaderboard" style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0; background: rgba(255, 255, 255, 0.5); padding: 15px; border-radius: 12px; width: 100%; max-width: 280px; font-size: 14px;"></div>
+                    <div id="game-over-leaderboard"
+                        style="display: flex; flex-direction: column; gap: 8px; margin: 15px 0; background: rgba(255, 255, 255, 0.5); padding: 15px; border-radius: 12px; width: 100%; max-width: 280px; font-size: 14px;">
+                    </div>
                     <div class="button-group">
                         <button id="restart-btn">Restart</button>
                         <button id="quit-to-menu-btn" class="secondary-btn">Quit to Menu</button>
@@ -108,40 +118,31 @@
 
                 <!-- DOM Overlay Crown -->
                 <div id="player-crown" style="position:absolute; pointer-events:none; display:none; z-index: 50;">
-                    <svg width="24" height="18" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.4));">
-                        <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00"/>
+                    <svg width="24" height="18" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg"
+                        style="filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.4));">
+                        <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00" />
                     </svg>
                 </div>
             </div>
-            
+
             <!-- Confirmation Modal -->
             <div id="confirm-modal" class="hidden">
                 <div class="modal-content-scale" style="max-width: 240px; padding: 20px;">
                     <h2 style="margin-top: 0; margin-bottom: 20px; font-size: 20px;">Restart Game?</h2>
                     <div style="display: flex; flex-direction: column; gap: 10px; width: 100%;">
-                        <button id="confirm-yes-btn" class="danger-btn" style="width: 100%; padding: 10px 0; font-size: 16px;">Restart</button>
-                        <button id="confirm-no-btn" class="secondary-btn" style="width: 100%; padding: 10px 0; font-size: 16px;">Cancel</button>
+                        <button id="confirm-yes-btn" class="danger-btn"
+                            style="width: 100%; padding: 10px 0; font-size: 16px;">Restart</button>
+                        <button id="confirm-no-btn" class="secondary-btn"
+                            style="width: 100%; padding: 10px 0; font-size: 16px;">Cancel</button>
                     </div>
                 </div>
             </div>
         </div>
-        
-        <!-- Settings Gear Button -->
-        <button id="settings-btn" class="hidden" style="position: absolute; top: max(env(safe-area-inset-top), 10px); left: max(env(safe-area-inset-left), 10px); background: rgba(255,255,255,0.85); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 50; cursor: pointer; align-items: center; justify-content: center; display: flex;">
-            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round" style="color: #333;"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-        </button>
 
-        <!-- Settings Modal -->
-        <div id="settings-modal" class="hidden" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.5); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center;">
-            <div class="modal-content-scale" style="max-width: 280px; padding: 25px; background: white; border-radius: 16px; width: 90%;">
-                <h2 style="margin-top: 0; margin-bottom: 25px; font-size: 22px; text-align: center;">Settings</h2>
-                <div style="display: flex; flex-direction: column; gap: 12px; width: 100%;">
-                    <button id="settings-resume-btn" style="width: 100%; padding: 12px 0; font-size: 16px;">Resume</button>
-                    <button id="settings-sound-btn" class="secondary-btn" style="width: 100%; padding: 12px 0; font-size: 16px;">Sound: ON</button>
-                    <button id="settings-restart-btn" class="danger-btn" style="width: 100%; padding: 12px 0; font-size: 16px;">Restart</button>
-                    <button id="settings-quit-btn" class="danger-btn" style="width: 100%; padding: 12px 0; font-size: 16px;">Quit to Menu</button>
-                </div>
-            </div>
+        <!-- Mobile Game Controls -->
+        <div id="mobile-controls" class="hidden">
+            <button id="mobile-pause-btn" class="mobile-btn">Pause</button>
+            <button id="mobile-restart-btn" class="mobile-btn danger-btn">Restart</button>
         </div>
     </div>
 
