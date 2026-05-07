@@ -1243,27 +1243,45 @@ function die(playerWon = false) {
 
         const rank = document.createElement("span");
         rank.className = "leaderboard-rank";
-        rank.textContent = `#${index + 1}`;
-
-        const name = document.createElement("span");
-        name.className = "leaderboard-name";
-        name.style.color = p.color;
-
+        rank.style.position = "relative";
+        
         if (index === 0) {
-            name.innerHTML = `<svg width="16" height="13" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="display:inline-block; vertical-align:-1px; margin-right:4px;">
-                <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.3));"/>
-            </svg>`;
-            name.appendChild(document.createTextNode(p.name));
+            rank.innerHTML = `<span style="position: relative; display: inline-block;">#1
+                <svg width="14" height="11" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: -7px; left: -8px; transform: rotate(-25deg); filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); z-index: 1;">
+                    <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00"/>
+                </svg>
+            </span>`;
         } else {
-            name.textContent = p.name;
+            rank.textContent = `#${index + 1}`;
         }
+
+        const nameContainer = document.createElement("span");
+        nameContainer.className = "leaderboard-name";
+        nameContainer.style.color = "black";
+        nameContainer.style.display = "flex";
+        nameContainer.style.alignItems = "center";
+
+        const colorSquare = document.createElement("div");
+        colorSquare.style.width = "12px";
+        colorSquare.style.height = "12px";
+        colorSquare.style.backgroundColor = p.color;
+        colorSquare.style.borderRadius = "2px";
+        colorSquare.style.marginRight = "6px";
+        colorSquare.style.flexShrink = "0";
+        colorSquare.style.boxShadow = "0 1px 2px rgba(0,0,0,0.3)";
+
+        const nameText = document.createElement("span");
+        nameText.textContent = p.name;
+
+        nameContainer.appendChild(colorSquare);
+        nameContainer.appendChild(nameText);
 
         const score = document.createElement("span");
         score.className = "leaderboard-score";
-        score.innerHTML = `<span style="color: #8E8E93; font-size: 0.9em;">⚔️ ${p.killCount}</span> &nbsp;|&nbsp; ${Math.round(p.percent)}%`;
+        score.innerHTML = `⚔️ ${p.killCount}`;
 
         entry.appendChild(rank);
-        entry.appendChild(name);
+        entry.appendChild(nameContainer);
         entry.appendChild(score);
         gameOverLeaderboard.appendChild(entry);
     });
@@ -1723,22 +1741,27 @@ function drawGame(progress) {
         // Draw native canvas crown for the king
         if (!isPlaying && isWon) {
             let t = (performance.now() / 1000) % 2.0;
-            let jump = 0;
-            let squashOffset = 0;
+            let squareYOffset = 0;
+            let crownToss = 0;
 
             if (t < 0.2) {
                 let u = t / 0.2;
-                squashOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
+                squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
             } else if (t < 0.8) {
                 let u = (t - 0.2) / 0.6;
-                jump = Math.sin(u * Math.PI) * 40;
+                squareYOffset = -Math.sin(u * Math.PI) * 40;
             } else if (t < 1.0) {
                 let u = (t - 0.8) / 0.2;
-                squashOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
+                squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
+            }
+
+            if (t >= 0.2 && t <= 0.9) {
+                let tossU = (t - 0.2) / 0.7;
+                crownToss = Math.sin(tossU * Math.PI) * 25; // flies 25px above head
             }
 
             ctx.save();
-            ctx.translate(king.visualPos.x + CELL_SIZE / 2, king.visualPos.y - jump + squashOffset);
+            ctx.translate(king.visualPos.x + CELL_SIZE / 2, king.visualPos.y + squareYOffset - crownToss);
             
             // Draw crown
             ctx.scale(1.2, 1.2); // scale crown slightly to fit nice
