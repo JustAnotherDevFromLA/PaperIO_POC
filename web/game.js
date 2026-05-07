@@ -678,66 +678,25 @@ function updateTerritoryCount() {
     }
 
     leaderboard.innerHTML = "";
-    const title = document.createElement("div");
-    title.textContent = "Leaderboard";
-    title.style.fontWeight = "900";
-    title.style.marginBottom = "8px";
-    title.style.textAlign = "center";
-    title.style.borderBottom = "1px solid rgba(0,0,0,0.1)";
-    title.style.paddingBottom = "4px";
-    leaderboard.appendChild(title);
 
     players.forEach((p, index) => {
-        const entry = document.createElement("div");
-        entry.className = "leaderboard-entry";
-        if (p.isReal) entry.classList.add("highlighted-player");
-
-        const rank = document.createElement("span");
-        rank.className = "leaderboard-rank";
-        rank.textContent = `#${index + 1}`;
-
-        const name = document.createElement("span");
-        name.className = "leaderboard-name";
-        name.style.color = p.color;
-
-        if (index === 0) {
-            name.innerHTML = `<svg width="16" height="13" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="display:inline-block; vertical-align:-1px; margin-right:4px;">
-                <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.3));"/>
-            </svg>`;
-            name.appendChild(document.createTextNode(p.name));
-        } else {
-            name.textContent = p.name;
-        }
+        const square = document.createElement("div");
+        square.className = "leaderboard-square";
+        if (p.isReal) square.classList.add("is-player");
+        
+        square.style.backgroundColor = p.color;
 
         if (p.isDead) {
+            square.classList.add("dead");
             if (isPlaying) {
-                name.innerHTML = `<span style="text-decoration: line-through; text-decoration-color: black; opacity: 0.5;">${name.innerHTML}</span>`;
-                const timer = document.createElement("span");
-                timer.style.marginLeft = "6px";
-                timer.style.fontSize = "0.9em";
-                timer.style.color = "#000";
-                timer.style.display = "inline-block";
-                timer.style.width = "28px";
-                timer.style.textAlign = "left";
-                timer.style.fontVariantNumeric = "tabular-nums";
-                timer.id = `timer-${p.id}`;
-                timer.textContent = `${Math.ceil(p.respawnTimer)}s`;
-                name.appendChild(timer);
-            } else {
-                name.style.opacity = "0.5";
+                square.textContent = `${Math.ceil(p.respawnTimer)}`;
             }
+        } else if (index === 0) {
+            // Crown for the current leader
+            square.innerHTML = `<svg width="14" height="12" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4));"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
         }
-
-        const score = document.createElement("span");
-        score.className = "leaderboard-score";
-        score.style.width = "auto";
-        score.style.whiteSpace = "nowrap";
-        score.innerHTML = `<span style="color: #8E8E93; font-size: 0.9em;">⚔️ ${p.killCount}</span> &nbsp;|&nbsp; ${Math.round(p.percent)}%`;
-
-        entry.appendChild(rank);
-        entry.appendChild(name);
-        entry.appendChild(score);
-        leaderboard.appendChild(entry);
+        
+        leaderboard.appendChild(square);
     });
 
     entities.forEach(e => {
