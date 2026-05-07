@@ -702,6 +702,7 @@ function updateTerritoryCount() {
 
         if (p.isDead) {
             square.classList.add("dead");
+            square.id = `timer-${p.id}`;
             if (isPlaying) {
                 square.textContent = `${Math.ceil(p.respawnTimer)}`;
             }
@@ -1643,10 +1644,8 @@ function drawGame(progress) {
     let king = entities.find(e => e.id === kingId);
     if (king && !king.isDead && (isPlaying || isWon)) {
         playerCrown.style.display = "block";
-        let scaleX = canvas.clientWidth / 800;
-        let scaleY = canvas.clientHeight / 800;
-        let cx = (king.visualPos.x + CELL_SIZE / 2) * scaleX;
-        let cy = (king.visualPos.y) * scaleY;
+        let px = ((king.visualPos.x + CELL_SIZE / 2) / 800) * 100;
+        let py = (king.visualPos.y / 800) * 100;
         
         if (!isPlaying && isWon) {
             let t = (performance.now() / 1000) % 2.0;
@@ -1664,21 +1663,21 @@ function drawGame(progress) {
                 squashOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
             }
 
-            cy -= jump * scaleY;
-            cy += squashOffset * scaleY;
+            py -= (jump / 800) * 100;
+            py += (squashOffset / 800) * 100;
         }
 
-        let cw = 24 * scaleX;
-        let ch = 18 * scaleY;
+        // Just let CSS handle the width of the SVG relative to vmin or keep it fixed, we'll keep the scale relative to viewport.
+        let scaleX = canvas.clientWidth / 800;
         let crownSvg = playerCrown.querySelector('svg');
         if (crownSvg) {
-            crownSvg.setAttribute('width', cw);
-            crownSvg.setAttribute('height', ch);
+            crownSvg.setAttribute('width', 24 * scaleX);
+            crownSvg.setAttribute('height', 18 * scaleX); // use scaleX for both to maintain aspect ratio perfectly
         }
 
-        playerCrown.style.left = "0px";
-        playerCrown.style.top = "0px";
-        playerCrown.style.transform = `translate3d(${cx}px, ${cy}px, 0) translate(-50%, -85%)`;
+        playerCrown.style.left = `${px}%`;
+        playerCrown.style.top = `${py}%`;
+        playerCrown.style.transform = `translate(-50%, -85%)`;
     } else {
         playerCrown.style.display = "none";
     }
