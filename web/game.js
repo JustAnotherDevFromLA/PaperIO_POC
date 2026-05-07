@@ -1146,30 +1146,43 @@ function capturePath(e) {
     updateTerritoryCount();
 }
 
+let fillTempGrid = new Uint8Array(GRID_SIZE * GRID_SIZE);
+let fillQueueX = new Int16Array(GRID_SIZE * GRID_SIZE);
+let fillQueueY = new Int16Array(GRID_SIZE * GRID_SIZE);
+
 function fillEnclosedArea(id) {
-    let tempGrid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
-    let queue = [];
+    fillTempGrid.fill(0);
+    let head = 0;
+    let tail = 0;
 
     for(let x=0; x<GRID_SIZE; x++){
         for(let y=0; y<GRID_SIZE; y++){
             if((x===0 || x===GRID_SIZE-1 || y===0 || y===GRID_SIZE-1) && grid[x][y] !== id) {
-                tempGrid[x][y] = 2;
-                queue.push({x, y});
+                fillTempGrid[x * GRID_SIZE + y] = 2;
+                fillQueueX[tail] = x;
+                fillQueueY[tail] = y;
+                tail++;
             }
         }
     }
 
-    const dirs = [{dx:0,dy:1},{dx:0,dy:-1},{dx:1,dy:0},{dx:-1,dy:0}];
-    let head = 0;
-    while(head < queue.length) {
-        let curr = queue[head++];
-        for(let d of dirs) {
-            let nx = curr.x + d.dx;
-            let ny = curr.y + d.dy;
+    const dx = [0, 0, 1, -1];
+    const dy = [1, -1, 0, 0];
+    
+    while(head < tail) {
+        let cx = fillQueueX[head];
+        let cy = fillQueueY[head];
+        head++;
+        
+        for(let i=0; i<4; i++) {
+            let nx = cx + dx[i];
+            let ny = cy + dy[i];
             if(nx>=0 && nx<GRID_SIZE && ny>=0 && ny<GRID_SIZE) {
-                if(grid[nx][ny] !== id && tempGrid[nx][ny] === 0) {
-                    tempGrid[nx][ny] = 2;
-                    queue.push({x:nx, y:ny});
+                if(grid[nx][ny] !== id && fillTempGrid[nx * GRID_SIZE + ny] === 0) {
+                    fillTempGrid[nx * GRID_SIZE + ny] = 2;
+                    fillQueueX[tail] = nx;
+                    fillQueueY[tail] = ny;
+                    tail++;
                 }
             }
         }
@@ -1177,14 +1190,17 @@ function fillEnclosedArea(id) {
 
     for(let x=0; x<GRID_SIZE; x++){
         for(let y=0; y<GRID_SIZE; y++){
-            if(grid[x][y] !== id && tempGrid[x][y] === 0) {
+            if(grid[x][y] !== id && fillTempGrid[x * GRID_SIZE + y] === 0) {
                 grid[x][y] = id;
                 
                 // Process encirclement logic on enemies
                 entities.forEach(other => {
                     if (other.id !== id && !other.isDead) {
                         // 1. Delete any uncaptured trail segments caught inside
-                        other.path = other.path.filter(p => !(p.x === x && p.y === y));
+                        let pathLength = other.path.length;
+                        if (pathLength > 0) {
+                            other.path = other.path.filter(p => !(p.x === x && p.y === y));
+                        }
                         
                         // 2. Kill the opponent if their actual head is encircled
                         if (other.pos.x === x && other.pos.y === y) {
