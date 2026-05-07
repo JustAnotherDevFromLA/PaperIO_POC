@@ -93,9 +93,9 @@ body {
 
 #board-wrapper {
     position: absolute;
-    /* Zoomed in 3x relative to the smallest screen dimension */
-    width: 300vmin;
-    height: 300vmin;
+    /* Zoomed in 1.8x relative to the smallest screen dimension */
+    width: 180vmin;
+    height: 180vmin;
     top: 0;
     left: 0;
 }
