@@ -113,9 +113,12 @@ let moveTimer = 0;
 const moveInterval = 100; // ms per grid step
 
 const playerCrown = document.getElementById("player-crown");
-const mobileControls = document.getElementById("mobile-controls");
-const pauseBtn = document.getElementById("mobile-pause-btn");
-const mobileRestartBtn = document.getElementById("mobile-restart-btn");
+const settingsBtn = document.getElementById("settings-btn");
+const settingsModal = document.getElementById("settings-modal");
+const settingsResumeBtn = document.getElementById("settings-resume-btn");
+const settingsSoundBtn = document.getElementById("settings-sound-btn");
+const settingsRestartBtn = document.getElementById("settings-restart-btn");
+const settingsQuitBtn = document.getElementById("settings-quit-btn");
 const confirmModal = document.getElementById("confirm-modal");
 const confirmYesBtn = document.getElementById("confirm-yes-btn");
 const confirmNoBtn = document.getElementById("confirm-no-btn");
@@ -124,23 +127,44 @@ const fxCanvas = document.getElementById("fx-canvas");
 const fxCtx = fxCanvas.getContext("2d");
 
 let isPaused = false;
+let isSoundEnabled = true;
+
 function togglePause() {
     if (!isPlaying) return;
     isPaused = !isPaused;
-    pauseBtn.textContent = isPaused ? "Resume" : "Pause";
 }
-pauseBtn.addEventListener("click", togglePause);
 
-mobileRestartBtn.addEventListener("click", () => {
+settingsBtn.addEventListener("click", () => {
+    if (!isPlaying) return;
     isPaused = true;
-    pauseBtn.textContent = "Resume";
+    settingsModal.classList.remove("hidden");
+});
+
+settingsResumeBtn.addEventListener("click", () => {
+    isPaused = false;
+    settingsModal.classList.add("hidden");
+});
+
+settingsSoundBtn.addEventListener("click", () => {
+    isSoundEnabled = !isSoundEnabled;
+    settingsSoundBtn.textContent = isSoundEnabled ? "Sound: ON" : "Sound: OFF";
+});
+
+settingsRestartBtn.addEventListener("click", () => {
+    settingsModal.classList.add("hidden");
     confirmModal.classList.remove("hidden");
+});
+
+settingsQuitBtn.addEventListener("click", () => {
+    settingsModal.classList.add("hidden");
+    // Show confirmation or just quit
+    isPaused = false;
+    quitToMenu();
 });
 
 confirmNoBtn.addEventListener("click", () => {
     confirmModal.classList.add("hidden");
-    isPaused = false;
-    pauseBtn.textContent = "Pause";
+    settingsModal.classList.remove("hidden"); // go back to settings
 });
 
 confirmYesBtn.addEventListener("click", () => {
@@ -341,8 +365,9 @@ function initAudio() {
         actx.resume();
     }
 }
+
 function playHitSound() {
-    if (!actx) return;
+    if (!actx || !isSoundEnabled) return;
 
     const time = actx.currentTime;
 
@@ -389,7 +414,7 @@ function playHitSound() {
     osc.stop(time + 0.1);
 }
 function playTurnSound() {
-    if (!actx) return;
+    if (!actx || !isSoundEnabled) return;
 
     const osc = actx.createOscillator();
     const gainNode = actx.createGain();
@@ -410,7 +435,7 @@ function playTurnSound() {
     osc.stop(actx.currentTime + 0.05);
 }
 function playFireworkSound() {
-    if (!actx) return;
+    if (!actx || !isSoundEnabled) return;
     
     // 500ms to 1000ms randomized buffer delay
     const delay = 0.5 + (Math.random() * 0.5);
@@ -573,9 +598,8 @@ function startGame() {
     gameOverScreen.classList.add("hidden");
     leaderboard.classList.remove("hidden");
     canvas.classList.remove("hidden");
-    mobileControls.classList.remove("hidden");
     isPaused = false;
-    pauseBtn.textContent = "Pause";
+    settingsBtn.classList.remove("hidden");
 
     isPlaying = true;
     document.body.classList.add("playing-cursor-hide");
@@ -1205,7 +1229,7 @@ function die(playerWon = false) {
     updateTerritoryCount(); // Final cleanup for the leaderboard UI
     
     document.body.classList.remove("playing-cursor-hide");
-    mobileControls.classList.add("hidden");
+    settingsBtn.classList.add("hidden");
     gameOverScreen.classList.remove("hidden");
 
     if (playerWon) {

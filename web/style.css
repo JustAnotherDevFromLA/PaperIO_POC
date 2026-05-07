@@ -112,24 +112,7 @@ body {
     background: white;
 }
 
-#mobile-controls {
-    display: none;
-    flex-direction: column;
-    gap: 8px;
-    width: 160px;
-    /* Position lower */
-    position: absolute;
-    bottom: max(env(safe-area-inset-bottom), 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 50;
-}
 
-@media (hover: none) and (pointer: coarse) {
-    #mobile-controls:not(.hidden) {
-        display: flex;
-    }
-}
 
 .mobile-btn {
     background: rgba(255,255,255,0.85);
