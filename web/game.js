@@ -108,9 +108,10 @@ let fireworkTimer = 0;
 let isWon = false;
 let winAnimationFrame = null;
 
-let lastTime = 0;
-let moveTimer = 0;
+let deadCameraOffset = {x: 0, y: 0};
+let isMouseDragging = false;
 const moveInterval = 100; // ms per grid step
+let moveTimer = 0;
 
 
 const settingsBtn = document.getElementById("settings-btn");
@@ -615,6 +616,7 @@ function startGame() {
     isPaused = false;
     if (settingsBtn) settingsBtn.classList.remove("hidden");
 
+    deadCameraOffset = {x: 0, y: 0};
     isPlaying = true;
     document.body.classList.add("playing-cursor-hide");
     lastTime = performance.now();
@@ -1351,8 +1353,18 @@ window.addEventListener("touchstart", e => {
 }, { passive: false });
 
 window.addEventListener("touchmove", e => {
-    if (isPlaying) e.preventDefault();
-    else return;
+    e.preventDefault();
+    if (!isPlaying) {
+        if (isWon) {
+            let dx = e.touches[0].screenX - touchStartX;
+            let dy = e.touches[0].screenY - touchStartY;
+            deadCameraOffset.x += dx;
+            deadCameraOffset.y += dy;
+            touchStartX = e.touches[0].screenX;
+            touchStartY = e.touches[0].screenY;
+        }
+        return;
+    }
     
     let player = entities.find(ent => ent.isReal);
     if (!player || player.isDead) return;
@@ -1385,6 +1397,28 @@ window.addEventListener("touchmove", e => {
         }
     }
 }, { passive: false });
+
+window.addEventListener("mousedown", e => {
+    if (!isPlaying && isWon) {
+        isMouseDragging = true;
+        touchStartX = e.clientX;
+        touchStartY = e.clientY;
+    }
+});
+
+window.addEventListener("mousemove", e => {
+    if (isMouseDragging && !isPlaying && isWon) {
+        let dx = e.clientX - touchStartX;
+        let dy = e.clientY - touchStartY;
+        deadCameraOffset.x += dx;
+        deadCameraOffset.y += dy;
+        touchStartX = e.clientX;
+        touchStartY = e.clientY;
+    }
+});
+
+window.addEventListener("mouseup", () => isMouseDragging = false);
+window.addEventListener("mouseleave", () => isMouseDragging = false);
 
 function spawnFirework() {
     const modalBox = document.querySelector('#game-over-screen > div').getBoundingClientRect();
@@ -1794,11 +1828,17 @@ function drawGame(progress) {
             
             let maxOffsetX = buffer;
             let minOffsetX = viewportWidth - bw - buffer;
-            offsetX = minOffsetX > maxOffsetX ? (viewportWidth - bw) / 2 : Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
+            let intendedOffsetX = offsetX + deadCameraOffset.x;
+            let clampedOffsetX = minOffsetX > maxOffsetX ? (viewportWidth - bw) / 2 : Math.max(minOffsetX, Math.min(maxOffsetX, intendedOffsetX));
+            deadCameraOffset.x = clampedOffsetX - offsetX;
+            offsetX = clampedOffsetX;
             
             let maxOffsetY = buffer;
             let minOffsetY = viewportHeight - bh - buffer;
-            offsetY = minOffsetY > maxOffsetY ? (viewportHeight - bh) / 2 : Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
+            let intendedOffsetY = offsetY + deadCameraOffset.y;
+            let clampedOffsetY = minOffsetY > maxOffsetY ? (viewportHeight - bh) / 2 : Math.max(minOffsetY, Math.min(maxOffsetY, intendedOffsetY));
+            deadCameraOffset.y = clampedOffsetY - offsetY;
+            offsetY = clampedOffsetY;
             
             boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
 
