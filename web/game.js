@@ -1821,23 +1821,25 @@ function drawGame(progress) {
             let offsetX = viewportWidth / 2 - px;
             let offsetY = viewportHeight / 2 - py;
             
-            // Clamp camera to prevent seeing too much outside the board
+            // Apply dead panning offset
+            offsetX += deadCameraOffset.x;
+            offsetY += deadCameraOffset.y;
+            
+            // Loose clamp to prevent panning infinitely off into the abyss when dead.
+            // Active players will never hit this clamp because they are bound by the map itself.
             let bw = boardWrapper.clientWidth;
             let bh = boardWrapper.clientHeight;
-            let buffer = 60; // Allow seeing 60px outside the map
             
-            let maxOffsetX = buffer;
-            let minOffsetX = viewportWidth - bw - buffer;
-            let intendedOffsetX = offsetX + deadCameraOffset.x;
-            let clampedOffsetX = minOffsetX > maxOffsetX ? (viewportWidth - bw) / 2 : Math.max(minOffsetX, Math.min(maxOffsetX, intendedOffsetX));
-            deadCameraOffset.x = clampedOffsetX - offsetX;
+            let maxOffsetX = viewportWidth;
+            let minOffsetX = -bw;
+            let clampedOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
+            deadCameraOffset.x -= (offsetX - clampedOffsetX);
             offsetX = clampedOffsetX;
             
-            let maxOffsetY = buffer;
-            let minOffsetY = viewportHeight - bh - buffer;
-            let intendedOffsetY = offsetY + deadCameraOffset.y;
-            let clampedOffsetY = minOffsetY > maxOffsetY ? (viewportHeight - bh) / 2 : Math.max(minOffsetY, Math.min(maxOffsetY, intendedOffsetY));
-            deadCameraOffset.y = clampedOffsetY - offsetY;
+            let maxOffsetY = viewportHeight;
+            let minOffsetY = -bh;
+            let clampedOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
+            deadCameraOffset.y -= (offsetY - clampedOffsetY);
             offsetY = clampedOffsetY;
             
             boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
