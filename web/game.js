@@ -1249,7 +1249,7 @@ function die(playerWon = false) {
         
         if (index === 0) {
             rank.innerHTML = `<span style="position: relative; display: inline-block;">#1
-                <svg width="18" height="14" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: -4px; left: -2px; transform: rotate(-15deg); filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); z-index: 1;">
+                <svg width="18" height="14" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: -8px; left: -3px; transform: rotate(-15deg); filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); z-index: 1;">
                     <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00"/>
                 </svg>
             </span>`;
