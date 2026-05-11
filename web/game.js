@@ -1832,28 +1832,31 @@ function drawGame(progress) {
             }
             
             fxCtx.save();
-            const canvasRect = canvas.getBoundingClientRect();
-            let scaleX = (canvasRect.width - 16) / 800;
-            let scaleY = (canvasRect.height - 16) / 800;
+            let boardWrapper = document.getElementById('board-wrapper');
+            let bwRaw = boardWrapper.clientWidth;
+            let bhRaw = boardWrapper.clientHeight;
+            let rawScaleX = (bwRaw - 16) / 800;
+            let rawScaleY = (bhRaw - 16) / 800;
+
+            let rawX = 8 + e.visualPos.x * rawScaleX;
+            let rawY = 8 + e.visualPos.y * rawScaleY;
+
+            let screenX = rawX * currentCamScale + currentCamOffsetX;
+            let screenY = rawY * currentCamScale + currentCamOffsetY;
+            let finalScaleX = rawScaleX * currentCamScale;
+            let finalScaleY = rawScaleY * currentCamScale;
+            let sSize = CELL_SIZE * finalScaleX;
             
-            let screenX = canvasRect.left + 8 + e.visualPos.x * scaleX;
-            let screenY = canvasRect.top + 8 + e.visualPos.y * scaleY;
-            let sSize = CELL_SIZE * scaleX;
-            
-            fxCtx.translate(screenX + sSize/2, screenY + sSize/2 - (jump * scaleY));
+            fxCtx.translate(screenX + sSize/2, screenY + sSize/2 - (jump * finalScaleY));
             fxCtx.rotate(rot);
             fxCtx.scale(1.0, scaleY_squash);
             fxCtx.translate(-(screenX + sSize/2), -(screenY + sSize/2));
-            
-            // Fast simulated shadow
-            fxCtx.fillStyle = "rgba(0,0,0,0.3)";
-            fxCtx.fillRect(screenX, screenY + (4 * scaleY), sSize, sSize);
             
             fxCtx.fillStyle = e.color;
             fxCtx.fillRect(screenX, screenY, sSize, sSize);
             
             fxCtx.strokeStyle = "rgba(0,0,0,0.15)";
-            fxCtx.lineWidth = 1 * scaleX;
+            fxCtx.lineWidth = 1 * finalScaleX;
             fxCtx.strokeRect(screenX, screenY, sSize, sSize);
             
             fxCtx.restore();
