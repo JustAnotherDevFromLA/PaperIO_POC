@@ -26,7 +26,8 @@ function drawBgGrid() {
     bgCtx.fillStyle = 'white';
     bgCtx.fillRect(0, 0, 800, 800);
     
-    bgCtx.strokeStyle = '#e0e0e0';
+    // Very soft lines to prevent optical stuttering (wagon-wheel effect) during fast camera panning
+    bgCtx.strokeStyle = 'rgba(0, 0, 0, 0.04)';
     bgCtx.lineWidth = 1;
     bgCtx.beginPath();
     for (let x = 0; x <= 800; x += CELL_SIZE) {
@@ -38,6 +39,14 @@ function drawBgGrid() {
         bgCtx.lineTo(800, y);
     }
     bgCtx.stroke();
+    
+    // Draw slightly more visible dots at intersections to help with spatial awareness without adding judder
+    bgCtx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+    for (let x = CELL_SIZE; x < 800; x += CELL_SIZE) {
+        for (let y = CELL_SIZE; y < 800; y += CELL_SIZE) {
+            bgCtx.fillRect(x - 1, y - 1, 2, 2);
+        }
+    }
 }
 
 const usernameInput = document.getElementById('username-input');
