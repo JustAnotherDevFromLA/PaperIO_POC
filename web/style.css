@@ -108,15 +108,29 @@ body {
     height: 180vmin;
     top: 0;
     left: 0;
+    will-change: transform;
 }
 
+#bg-canvas,
 #game-canvas {
+    position: absolute;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
     display: block;
     /* Strong edge border to distinguish map bounds */
     border: 8px solid rgba(0, 0, 0, 0.8);
+    box-sizing: border-box;
+}
+
+#bg-canvas {
     background: white;
+}
+
+#game-canvas {
+    background: transparent;
+    pointer-events: none;
 }
 
 

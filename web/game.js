@@ -16,26 +16,28 @@ const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
 const quitToMenuBtn = document.getElementById('quit-to-menu-btn');
 
-let gridCanvas = null;
-function initGridCache() {
-    gridCanvas = document.createElement('canvas');
-    gridCanvas.width = 800 * dpr;
-    gridCanvas.height = 800 * dpr;
-    let gCtx = gridCanvas.getContext('2d');
-    gCtx.scale(dpr, dpr);
+const bgCanvas = document.getElementById('bg-canvas');
+const bgCtx = bgCanvas.getContext('2d', {alpha: false});
+bgCanvas.width = 800 * dpr;
+bgCanvas.height = 800 * dpr;
+bgCtx.scale(dpr, dpr);
+
+function drawBgGrid() {
+    bgCtx.fillStyle = 'white';
+    bgCtx.fillRect(0, 0, 800, 800);
     
-    gCtx.strokeStyle = '#e0e0e0';
-    gCtx.lineWidth = 1;
-    gCtx.beginPath();
+    bgCtx.strokeStyle = '#e0e0e0';
+    bgCtx.lineWidth = 1;
+    bgCtx.beginPath();
     for (let x = 0; x <= 800; x += CELL_SIZE) {
-        gCtx.moveTo(x, 0);
-        gCtx.lineTo(x, 800);
+        bgCtx.moveTo(x, 0);
+        bgCtx.lineTo(x, 800);
     }
     for (let y = 0; y <= 800; y += CELL_SIZE) {
-        gCtx.moveTo(0, y);
-        gCtx.lineTo(800, y);
+        bgCtx.moveTo(0, y);
+        bgCtx.lineTo(800, y);
     }
-    gCtx.stroke();
+    bgCtx.stroke();
 }
 
 const usernameInput = document.getElementById('username-input');
@@ -373,6 +375,7 @@ quitToMenuBtn.addEventListener("click", () => {
     gameOverScreen.classList.add("hidden");
     menuScreen.classList.remove("hidden");
     canvas.classList.add("hidden");
+    bgCanvas.classList.add("hidden");
     leaderboard.classList.add("hidden");
 });
 
@@ -619,6 +622,7 @@ function startGame() {
     gameOverScreen.classList.add("hidden");
     leaderboard.classList.remove("hidden");
     canvas.classList.remove("hidden");
+    bgCanvas.classList.remove("hidden");
     isPaused = false;
     if (settingsBtn) settingsBtn.classList.remove("hidden");
 
