@@ -1959,10 +1959,28 @@ function drawGame(progress) {
                 currentCamOffsetY = targetOffsetY;
                 currentCamScale = targetScale;
             } else {
-                // Smooth interpolation factor (0.07 is slightly faster than 0.04)
-                currentCamOffsetX += (targetOffsetX - currentCamOffsetX) * 0.07;
-                currentCamOffsetY += (targetOffsetY - currentCamOffsetY) * 0.07;
-                currentCamScale += (targetScale - currentCamScale) * 0.07;
+                if (myPlayer.isDead || isWon) {
+                    let lerpSpeed = 0.15; // 2x faster zoom out effect
+                    currentCamOffsetX += (targetOffsetX - currentCamOffsetX) * lerpSpeed;
+                    currentCamOffsetY += (targetOffsetY - currentCamOffsetY) * lerpSpeed;
+                    currentCamScale += (targetScale - currentCamScale) * lerpSpeed;
+                } else {
+                    let diffX = targetOffsetX - currentCamOffsetX;
+                    let diffY = targetOffsetY - currentCamOffsetY;
+                    let diffScale = targetScale - currentCamScale;
+                    
+                    // If we are far away (e.g. just respawned), swoop in fast!
+                    if (Math.abs(diffScale) > 0.005 || Math.abs(diffX) > 5 || Math.abs(diffY) > 5) {
+                        currentCamOffsetX += diffX * 0.15;
+                        currentCamOffsetY += diffY * 0.15;
+                        currentCamScale += diffScale * 0.15;
+                    } else {
+                        // Hard lock to player to prevent camera lag and keep player perfectly centered!
+                        currentCamOffsetX = targetOffsetX;
+                        currentCamOffsetY = targetOffsetY;
+                        currentCamScale = targetScale;
+                    }
+                }
             }
 
             boardWrapper.style.transform = `translate3d(${currentCamOffsetX}px, ${currentCamOffsetY}px, 0) scale(${currentCamScale})`;
