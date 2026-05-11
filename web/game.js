@@ -1099,19 +1099,11 @@ function moveEntities() {
         }
     }
 
-    let botIndex = 0;
-    let currentTick = window.gameTick || 0;
-    window.gameTick = currentTick + 1;
-
     entities.forEach(e => {
         if(e.isDead) return;
         
         if(!e.isReal) {
-            botIndex++;
-            // Rate limit bot AI execution to 1/3 of bots per frame to save CPU
-            if (botIndex % 3 === currentTick % 3) {
-                updateBotAI(e);
-            }
+            updateBotAI(e);
         }
 
         e.currentDir = e.nextDir;
