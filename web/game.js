@@ -857,6 +857,23 @@ function getShortestPathToEdge(startX, startY, botId) {
     return Infinity;
 }
 
+function getManhattanToBase(startX, startY, botId, maxDist) {
+    if (grid[startX][startY] === botId) return 0;
+    for (let r = 1; r <= maxDist; r++) {
+        for (let i = 0; i < r; i++) {
+            let x1 = startX + i, y1 = startY - r + i;
+            if (x1>=0 && x1<GRID_SIZE && y1>=0 && y1<GRID_SIZE && grid[x1][y1]===botId) return r;
+            let x2 = startX + r - i, y2 = startY + i;
+            if (x2>=0 && x2<GRID_SIZE && y2>=0 && y2<GRID_SIZE && grid[x2][y2]===botId) return r;
+            let x3 = startX - i, y3 = startY + r - i;
+            if (x3>=0 && x3<GRID_SIZE && y3>=0 && y3<GRID_SIZE && grid[x3][y3]===botId) return r;
+            let x4 = startX - r + i, y4 = startY - i;
+            if (x4>=0 && x4<GRID_SIZE && y4>=0 && y4<GRID_SIZE && grid[x4][y4]===botId) return r;
+        }
+    }
+    return maxDist + 1;
+}
+
 function updateBotAI(bot) {
     bot.framesInState++;
     let validDirs = [
@@ -907,13 +924,6 @@ function updateBotAI(bot) {
             }
         }
     });
-
-    let baseTiles = [];
-    for (let x=0; x<GRID_SIZE; x++) {
-        for (let y=0; y<GRID_SIZE; y++) {
-            if (grid[x][y] === bot.id) baseTiles.push({x, y});
-        }
-    }
 
     // Estimate bounds of current path to calculate Reward
     let minX = bot.pos.x, maxX = bot.pos.x, minY = bot.pos.y, maxY = bot.pos.y;
@@ -991,6 +1001,10 @@ function updateBotAI(bot) {
         let distToEnemyPath = 9999;
         entities.forEach(other => {
             if (other.id !== bot.id && !other.isDead) {
+                let manhattanToOtherHead = Math.abs(nx - other.pos.x) + Math.abs(ny - other.pos.y);
+                // Fast path-pruning: skip if the enemy's path cannot possibly reach this cell within 5 distance
+                if (manhattanToOtherHead - other.path.length > 5) return;
+                
                 for (let p of other.path) {
                     let dPath = Math.abs(nx - p.x) + Math.abs(ny - p.y);
                     if (dPath < distToEnemyPath) distToEnemyPath = dPath;
@@ -1020,13 +1034,7 @@ function updateBotAI(bot) {
                 }
             }
             
-            let manhattanToBase = 9999;
-            if (baseTiles.length > 0) {
-                for (let b of baseTiles) {
-                    let mDist = Math.abs(nx - b.x) + Math.abs(ny - b.y);
-                    if (mDist < manhattanToBase) manhattanToBase = mDist;
-                }
-            }
+            let manhattanToBase = getManhattanToBase(nx, ny, bot.id, 20);
             if (distToBase > manhattanToBase + 2) {
                 risk += (distToBase - manhattanToBase) * 200; 
             }
@@ -1530,20 +1538,23 @@ function drawParticles(ctx) {
     particles.forEach(p => {
         let alpha = p.life / p.maxLife;
         if (alpha < 0) alpha = 0;
-        ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
-        ctx.beginPath();
+        
         if (p.stuck) {
-            // Neon glow for vibrant splatter
-            ctx.shadowBlur = 8;
-            ctx.shadowColor = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
-            // Draw an elongated drip shape
+            // Simulated neon glow for vibrant splatter (two overlapping ellipses)
+            ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha * 0.3})`;
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y, p.size, p.size * 2, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
+            ctx.beginPath();
             ctx.ellipse(p.x, p.y, p.size / 2, p.size, 0, 0, Math.PI * 2);
+            ctx.fill();
         } else {
-            ctx.shadowBlur = 0; // normal particle
-            ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            // Fast rect rendering for moving particles
+            ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
+            ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
         }
-        ctx.fill();
-        ctx.shadowBlur = 0; // reset to avoid bleeding
     });
 }
 function winLoop(timestamp) {
@@ -1658,11 +1669,10 @@ function drawGame(progress) {
     entities.forEach(e => {
         if(e.isDead) return;
         ctx.fillStyle = e.color;
-        ctx.beginPath();
+        // Fast fillRect loop instead of expensive beginPath/fill operations for complex paths
         for(let p of e.path) {
-            ctx.rect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            ctx.fillRect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         }
-        ctx.fill();
     });
     ctx.globalAlpha = 1.0;
 
@@ -1672,11 +1682,12 @@ function drawGame(progress) {
             if(isPlaying && e.collisionCell && e.deathMarkerAlpha > 0) {
                 let cx = e.collisionCell.x * CELL_SIZE;
                 let cy = e.collisionCell.y * CELL_SIZE;
-                ctx.fillStyle = `rgba(255, 59, 48, ${e.deathMarkerAlpha})`;
-                ctx.shadowColor = `rgba(255, 59, 48, ${e.deathMarkerAlpha})`;
-                ctx.shadowBlur = 15;
+                
+                // Simulated death marker glow
+                ctx.fillStyle = `rgba(255, 59, 48, ${e.deathMarkerAlpha * 0.3})`;
+                ctx.fillRect(cx - 6, cy - 6, CELL_SIZE + 12, CELL_SIZE + 12);
+                ctx.fillStyle = `rgba(255, 59, 48, ${e.deathMarkerAlpha * 0.6})`;
                 ctx.fillRect(cx - 2, cy - 2, CELL_SIZE + 4, CELL_SIZE + 4);
-                ctx.shadowBlur = 0;
 
                 let centerX = cx + CELL_SIZE / 2;
                 let centerY = cy + CELL_SIZE / 2;
@@ -1744,11 +1755,12 @@ function drawGame(progress) {
             fxCtx.scale(1.0, scaleY_squash);
             fxCtx.translate(-(screenX + sSize/2), -(screenY + sSize/2));
             
+            // Fast simulated shadow
+            fxCtx.fillStyle = "rgba(0,0,0,0.3)";
+            fxCtx.fillRect(screenX, screenY + (4 * scaleY), sSize, sSize);
+            
             fxCtx.fillStyle = e.color;
-            fxCtx.shadowColor = "rgba(0,0,0,0.5)";
-            fxCtx.shadowBlur = 5 * scaleX;
             fxCtx.fillRect(screenX, screenY, sSize, sSize);
-            fxCtx.shadowBlur = 0;
             
             fxCtx.strokeStyle = "rgba(0,0,0,0.15)";
             fxCtx.lineWidth = 1 * scaleX;
@@ -1759,20 +1771,21 @@ function drawGame(progress) {
         }
 
         ctx.save();
-        ctx.fillStyle = e.color;
         
         if (grid[e.pos.x] && grid[e.pos.x][e.pos.y] === e.id) {
-            // Intense white glow optimized (single pass)
-            ctx.shadowColor = "rgba(255, 255, 255, 0.9)";
-            ctx.shadowBlur = 15;
-            ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
+            // Simulated intense white glow (fast multi-rect)
+            ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
+            ctx.fillRect(e.visualPos.x - 4, e.visualPos.y - 4, CELL_SIZE + 8, CELL_SIZE + 8);
+            ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
+            ctx.fillRect(e.visualPos.x - 2, e.visualPos.y - 2, CELL_SIZE + 4, CELL_SIZE + 4);
         } else {
-            // Normal shadow optimized
-            ctx.shadowColor = "rgba(0,0,0,0.4)";
-            ctx.shadowBlur = 4;
-            ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
+            // Simulated normal drop shadow
+            ctx.fillStyle = "rgba(0,0,0,0.25)";
+            ctx.fillRect(e.visualPos.x, e.visualPos.y + 3, CELL_SIZE, CELL_SIZE);
         }
-        ctx.shadowBlur = 0;
+        
+        ctx.fillStyle = e.color;
+        ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         
         ctx.strokeStyle = "rgba(0,0,0,0.15)";
         ctx.lineWidth = 1;
