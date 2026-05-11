@@ -4,6 +4,11 @@ const leaderboard = document.getElementById('leaderboard');
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
+let dpr = Math.max(window.devicePixelRatio || 1, 2); // At least 2x resolution
+canvas.width = 800 * dpr;
+canvas.height = 800 * dpr;
+ctx.scale(dpr, dpr);
+
 const gameOverTitle = document.getElementById('game-over-title');
 const gameOverLeaderboard = document.getElementById('game-over-leaderboard');
 const colorSwatches = document.querySelectorAll('.color-swatch');
@@ -16,20 +21,21 @@ const quitGameBtn = document.getElementById('quit-game-btn');
 let gridCanvas = null;
 function initGridCache() {
     gridCanvas = document.createElement('canvas');
-    gridCanvas.width = canvas.width;
-    gridCanvas.height = canvas.height;
+    gridCanvas.width = 800 * dpr;
+    gridCanvas.height = 800 * dpr;
     let gCtx = gridCanvas.getContext('2d');
+    gCtx.scale(dpr, dpr);
     
     gCtx.strokeStyle = '#e0e0e0';
     gCtx.lineWidth = 1;
     gCtx.beginPath();
-    for (let x = 0; x <= gridCanvas.width; x += CELL_SIZE) {
+    for (let x = 0; x <= 800; x += CELL_SIZE) {
         gCtx.moveTo(x, 0);
-        gCtx.lineTo(x, gridCanvas.height);
+        gCtx.lineTo(x, 800);
     }
-    for (let y = 0; y <= gridCanvas.height; y += CELL_SIZE) {
+    for (let y = 0; y <= 800; y += CELL_SIZE) {
         gCtx.moveTo(0, y);
-        gCtx.lineTo(gridCanvas.width, y);
+        gCtx.lineTo(800, y);
     }
     gCtx.stroke();
 }
@@ -187,8 +193,11 @@ if (confirmYesBtn) {
     });
 }
 function resizeFxCanvas() {
-    fxCanvas.width = window.innerWidth;
-    fxCanvas.height = window.innerHeight;
+    let dpr = Math.max(window.devicePixelRatio || 1, 2);
+    fxCanvas.width = window.innerWidth * dpr;
+    fxCanvas.height = window.innerHeight * dpr;
+    fxCtx.setTransform(1, 0, 0, 1, 0, 0);
+    fxCtx.scale(dpr, dpr);
 }
 window.addEventListener("resize", resizeFxCanvas);
 resizeFxCanvas();
@@ -628,9 +637,10 @@ let tCtx = null;
 
 function initTerritoryCache() {
     territoryCanvas = document.createElement('canvas');
-    territoryCanvas.width = canvas.width;
-    territoryCanvas.height = canvas.height;
+    territoryCanvas.width = 800 * dpr;
+    territoryCanvas.height = 800 * dpr;
     tCtx = territoryCanvas.getContext('2d');
+    tCtx.scale(dpr, dpr);
     updateTerritoryCount();
 }
 
@@ -1443,8 +1453,8 @@ function spawnFirework() {
 
     // Fallback in case modal bounds are completely broken
     if (isNaN(x) || isNaN(y)) {
-        x = Math.random() * fxCanvas.width;
-        y = Math.random() * (fxCanvas.height / 2);
+        x = Math.random() * window.innerWidth;
+        y = Math.random() * (window.innerHeight / 2);
     }
 
     // Introduce randomized scaling for fireworks of various sizes
@@ -1556,7 +1566,7 @@ function winLoop(timestamp) {
 
     updateParticles(dt);
 
-    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
     drawGame(); // Draws the static board
     drawParticles(fxCtx); // Overlay fireworks on the absolute foreground
 
@@ -1637,14 +1647,14 @@ function gameLoop(time) {
 }
 
 function drawGame(progress) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.clearRect(0, 0, 800, 800);
 
     if (!gridCanvas) initGridCache();
-    ctx.drawImage(gridCanvas, 0, 0);
+    ctx.drawImage(gridCanvas, 0, 0, 800, 800);
 
     // Territories from Cached Offscreen Canvas
     if (!territoryCanvas) initTerritoryCache();
-    ctx.drawImage(territoryCanvas, 0, 0);
+    ctx.drawImage(territoryCanvas, 0, 0, 800, 800);
 
     // Paths
     ctx.globalAlpha = 0.5;
