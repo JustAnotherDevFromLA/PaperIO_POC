@@ -633,18 +633,6 @@ function startGame() {
     requestAnimationFrame(gameLoop);
 }
 
-let territoryCanvas = null;
-let tCtx = null;
-
-function initTerritoryCache() {
-    territoryCanvas = document.createElement('canvas');
-    territoryCanvas.width = 800 * dpr;
-    territoryCanvas.height = 800 * dpr;
-    tCtx = territoryCanvas.getContext('2d');
-    tCtx.scale(dpr, dpr);
-    updateTerritoryCount();
-}
-
 function updateTerritoryCount() {
     let entityMap = {};
     for (let e of entities) {
@@ -652,7 +640,7 @@ function updateTerritoryCount() {
         entityMap[e.id] = e;
     }
 
-    if (tCtx) tCtx.clearRect(0, 0, territoryCanvas.width, territoryCanvas.height);
+    drawBgGrid();
     
     let regionsByColor = {};
 
@@ -661,25 +649,20 @@ function updateTerritoryCount() {
             let id = grid[x][y];
             if (id > 0 && entityMap[id]) {
                 entityMap[id].territoryCount++;
-                if (tCtx) {
-                    let c = entityMap[id].color;
-                    if (!regionsByColor[c]) regionsByColor[c] = [];
-                    regionsByColor[c].push({x, y});
-                }
+                let c = entityMap[id].color;
+                if (!regionsByColor[c]) regionsByColor[c] = [];
+                regionsByColor[c].push({x, y});
             }
         }
     }
 
-    if (tCtx) {
-        for (let c in regionsByColor) {
-            tCtx.fillStyle = c;
-            tCtx.beginPath();
-            for (let p of regionsByColor[c]) {
-                tCtx.rect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-            }
-            tCtx.fill();
+    for (let c in regionsByColor) {
+        bgCtx.fillStyle = c;
+        for (let p of regionsByColor[c]) {
+            bgCtx.fillRect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         }
     }
+
     entities.forEach(e => {
         if (!e.isDead && isPlaying) {
             let percent = ((e.territoryCount / TOTAL_CELLS) * 100);
@@ -1660,13 +1643,6 @@ function gameLoop(time) {
 
 function drawGame(progress) {
     ctx.clearRect(0, 0, 800, 800);
-
-    if (!gridCanvas) initGridCache();
-    ctx.drawImage(gridCanvas, 0, 0, 800, 800);
-
-    // Territories from Cached Offscreen Canvas
-    if (!territoryCanvas) initTerritoryCache();
-    ctx.drawImage(territoryCanvas, 0, 0, 800, 800);
 
     // Paths
     ctx.globalAlpha = 0.5;
