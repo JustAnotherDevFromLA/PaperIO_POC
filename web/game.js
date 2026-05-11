@@ -130,6 +130,9 @@ let isWon = false;
 let winAnimationFrame = null;
 
 let deadCameraOffset = {x: 0, y: 0};
+let currentCamOffsetX = null;
+let currentCamOffsetY = null;
+let currentCamScale = 1.0;
 let isMouseDragging = false;
 const moveInterval = 100; // ms per grid step
 let moveTimer = 0;
@@ -1724,6 +1727,14 @@ function drawGame(progress) {
     let viewRight = pxCam + (canvasRectWidth / scaleX / 2) + 100;
     let viewTop = pyCam - (canvasRectHeight / scaleY / 2) - 100;
     let viewBottom = pyCam + (canvasRectHeight / scaleY / 2) + 100;
+    
+    // Do not cull when zoomed out so paths and areas render correctly!
+    if (myPlayer.isDead) {
+        viewLeft = -1000;
+        viewRight = 10000;
+        viewTop = -1000;
+        viewBottom = 10000;
+    }
 
     entities.forEach(e => {
         if(e.isDead) return;
@@ -1851,10 +1862,6 @@ function drawGame(progress) {
             ctx.fillRect(e.visualPos.x - 4, e.visualPos.y - 4, CELL_SIZE + 8, CELL_SIZE + 8);
             ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
             ctx.fillRect(e.visualPos.x - 2, e.visualPos.y - 2, CELL_SIZE + 4, CELL_SIZE + 4);
-        } else {
-            // Simulated normal drop shadow
-            ctx.fillStyle = "rgba(0,0,0,0.25)";
-            ctx.fillRect(e.visualPos.x, e.visualPos.y + 3, CELL_SIZE, CELL_SIZE);
         }
         
         ctx.fillStyle = e.color;
@@ -1922,11 +1929,22 @@ function drawGame(progress) {
                 offsetY = clampedOffsetY;
             }
             
-            if (scaleFactor !== 1.0) {
-                boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scaleFactor})`;
+            let targetOffsetX = offsetX;
+            let targetOffsetY = offsetY;
+            let targetScale = scaleFactor;
+
+            if (currentCamOffsetX === null) {
+                currentCamOffsetX = targetOffsetX;
+                currentCamOffsetY = targetOffsetY;
+                currentCamScale = targetScale;
             } else {
-                boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+                // Smooth interpolation factor
+                currentCamOffsetX += (targetOffsetX - currentCamOffsetX) * 0.1;
+                currentCamOffsetY += (targetOffsetY - currentCamOffsetY) * 0.1;
+                currentCamScale += (targetScale - currentCamScale) * 0.1;
             }
+
+            boardWrapper.style.transform = `translate3d(${currentCamOffsetX}px, ${currentCamOffsetY}px, 0) scale(${currentCamScale})`;
 
             let winCrown = document.getElementById("win-crown-overlay");
             if (winCrown) {
