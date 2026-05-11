@@ -161,6 +161,23 @@
     <script>
         if ('serviceWorker' in navigator) {
             navigator.serviceWorker.register('sw.js');
+            
+            let refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', () => {
+                if (refreshing) return;
+                let banner = document.getElementById('update-banner');
+                if (banner) {
+                    banner.style.display = 'flex';
+                }
+            });
+
+            const refreshBtn = document.getElementById('update-refresh-btn');
+            if (refreshBtn) {
+                refreshBtn.addEventListener('click', () => {
+                    refreshing = true;
+                    window.location.reload();
+                });
+            }
         }
     </script>
 </body>
