@@ -1197,6 +1197,7 @@ function fillEnclosedArea(id) {
         for(let y=0; y<GRID_SIZE; y++){
             if(grid[x][y] !== id && fillTempGrid[x * GRID_SIZE + y] === 0) {
                 grid[x][y] = id;
+                fillTempGrid[x * GRID_SIZE + y] = 3; // Mark as newly captured for path filtering
                 
                 // Process head kills on enemies caught in the fill
                 entities.forEach(other => {
@@ -1214,8 +1215,8 @@ function fillEnclosedArea(id) {
     // Process path removal in O(P) instead of O(N*P) to prevent severe GC lag spikes
     entities.forEach(other => {
         if (other.id !== id && !other.isDead && other.path.length > 0) {
-            // If the path point's cell was marked as enclosed (0), it was captured, so we filter it out.
-            other.path = other.path.filter(p => fillTempGrid[p.x * GRID_SIZE + p.y] !== 0);
+            // ONLY remove paths that fall exactly on the newly captured cells (marked as 3)
+            other.path = other.path.filter(p => fillTempGrid[p.x * GRID_SIZE + p.y] !== 3);
         }
     });
 }
@@ -1773,41 +1774,7 @@ function drawGame(progress) {
         ctx.restore();
     });
 
-    let king = entities.find(e => e.id === kingId);
-    if (king && !king.isDead && isPlaying) {
-        // Normal play crown rendering
-        ctx.save();
-        ctx.translate(king.visualPos.x + CELL_SIZE / 2, king.visualPos.y);
-        
-        // Draw crown
-        ctx.scale(1.2, 1.2); // scale crown slightly
-        ctx.translate(0, -4); // offset above player
-        
-        ctx.beginPath();
-        ctx.moveTo(-7, 0);
-        ctx.lineTo(7, 0);
-        ctx.lineTo(9, -10);
-        ctx.lineTo(3.5, -4);
-        ctx.lineTo(0, -13);
-        ctx.lineTo(-3.5, -4);
-        ctx.lineTo(-9, -10);
-        ctx.closePath();
-        
-        ctx.shadowColor = "rgba(0,0,0,0.4)";
-        ctx.shadowBlur = 4;
-        ctx.shadowOffsetY = 2;
-        
-        ctx.fillStyle = "#FFCC00";
-        ctx.fill();
-        
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetY = 0;
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = "white";
-        ctx.stroke();
-        
-        ctx.restore();
-    }
+    // Normal play crown rendering has been moved to the DOM overlay to prevent clipping at the borders.
 
     // Camera follow logic
     let myPlayer = entities.find(e => e.isReal);
@@ -1850,13 +1817,13 @@ function drawGame(progress) {
 
             let winCrown = document.getElementById("win-crown-overlay");
             if (winCrown) {
-                if (!isPlaying && isWon) {
-                    let king = entities.find(e => e.id === kingId);
-                    if (king) {
-                        let t = (performance.now() / 1000) % 2.0;
-                        let squareYOffset = 0;
-                        let crownToss = 0;
+                let king = entities.find(e => e.id === kingId);
+                if (king && !king.isDead) {
+                    let squareYOffset = 0;
+                    let crownToss = 0;
 
+                    if (!isPlaying && isWon) {
+                        let t = (performance.now() / 1000) % 2.0;
                         if (t < 0.2) {
                             let u = t / 0.2;
                             squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
@@ -1872,16 +1839,14 @@ function drawGame(progress) {
                             let tossU = (t - 0.2) / 0.7;
                             crownToss = Math.sin(tossU * Math.PI) * 25;
                         }
-
-                        let screenX = (king.visualPos.x + CELL_SIZE / 2) * scaleX + offsetX;
-                        let baseOffsetY = -4 * scaleY;
-                        let screenY = (king.visualPos.y + squareYOffset - crownToss) * scaleY + offsetY + baseOffsetY;
-
-                        winCrown.style.display = "block";
-                        winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${1.2 * scaleX})`;
-                    } else {
-                        winCrown.style.display = "none";
                     }
+
+                    let screenX = (king.visualPos.x + CELL_SIZE / 2) * scaleX + offsetX;
+                    let baseOffsetY = -4 * scaleY;
+                    let screenY = (king.visualPos.y + squareYOffset - crownToss) * scaleY + offsetY + baseOffsetY;
+
+                    winCrown.style.display = "block";
+                    winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${1.2 * scaleX})`;
                 } else {
                     winCrown.style.display = "none";
                 }
