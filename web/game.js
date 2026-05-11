@@ -1848,9 +1848,10 @@ function drawGame(progress) {
                         }
                     }
 
-                    let screenX = (king.visualPos.x + CELL_SIZE / 2) * scaleX + offsetX;
+                    // Add 8px to account for the canvas border pushing the content inwards
+                    let screenX = (king.visualPos.x + CELL_SIZE / 2) * scaleX + offsetX + 8;
                     let baseOffsetY = -2 * scaleY; // Sits lower on the head
-                    let screenY = (king.visualPos.y + squareYOffset - crownToss) * scaleY + offsetY + baseOffsetY;
+                    let screenY = (king.visualPos.y + squareYOffset - crownToss) * scaleY + offsetY + baseOffsetY + 8;
 
                     winCrown.style.display = "block";
                     winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${0.8 * scaleX})`;
