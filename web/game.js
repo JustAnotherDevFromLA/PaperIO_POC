@@ -1426,8 +1426,11 @@ window.addEventListener("touchstart", e => {
 
 window.addEventListener("touchmove", e => {
     e.preventDefault();
-    if (!isPlaying) {
-        if (isWon) {
+    let player = entities.find(ent => ent.isReal);
+    
+    // Allow panning if game is won, or if player is dead and waiting to respawn
+    if (!isPlaying || (player && player.isDead)) {
+        if (isWon || (player && player.isDead)) {
             let dx = e.touches[0].screenX - touchStartX;
             let dy = e.touches[0].screenY - touchStartY;
             deadCameraOffset.x += dx;
@@ -1437,9 +1440,6 @@ window.addEventListener("touchmove", e => {
         }
         return;
     }
-    
-    let player = entities.find(ent => ent.isReal);
-    if (!player || player.isDead) return;
 
     let touchEndX = e.touches[0].screenX;
     let touchEndY = e.touches[0].screenY;
@@ -1471,7 +1471,8 @@ window.addEventListener("touchmove", e => {
 }, { passive: false });
 
 window.addEventListener("mousedown", e => {
-    if (!isPlaying && isWon) {
+    let player = entities.find(ent => ent.isReal);
+    if ((!isPlaying && isWon) || (player && player.isDead)) {
         isMouseDragging = true;
         touchStartX = e.clientX;
         touchStartY = e.clientY;
@@ -1479,7 +1480,8 @@ window.addEventListener("mousedown", e => {
 });
 
 window.addEventListener("mousemove", e => {
-    if (isMouseDragging && !isPlaying && isWon) {
+    let player = entities.find(ent => ent.isReal);
+    if (isMouseDragging && ((!isPlaying && isWon) || (player && player.isDead))) {
         let dx = e.clientX - touchStartX;
         let dy = e.clientY - touchStartY;
         deadCameraOffset.x += dx;
