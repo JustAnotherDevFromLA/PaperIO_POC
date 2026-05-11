@@ -4,10 +4,12 @@ const leaderboard = document.getElementById('leaderboard');
 const canvas = document.getElementById('game-canvas');
 const ctx = canvas.getContext('2d');
 
-let dpr = Math.max(window.devicePixelRatio || 1, 2); // At least 2x resolution
-canvas.width = 800 * dpr;
-canvas.height = 800 * dpr;
-ctx.scale(dpr, dpr);
+let dpr = Math.max(window.devicePixelRatio || 1, 2); // Keep dpr for UI/FX if needed
+
+// DO NOT SCALE the giant game board canvases! Doing so exceeds iOS GPU memory limits and forces slow CPU compositing.
+canvas.width = 800;
+canvas.height = 800;
+// ctx.scale is removed, everything is rendered 1:1 to the 800x800 grid
 
 const gameOverTitle = document.getElementById('game-over-title');
 const gameOverLeaderboard = document.getElementById('game-over-leaderboard');
@@ -18,9 +20,8 @@ const quitToMenuBtn = document.getElementById('quit-to-menu-btn');
 
 const bgCanvas = document.getElementById('bg-canvas');
 const bgCtx = bgCanvas.getContext('2d', {alpha: false});
-bgCanvas.width = 800 * dpr;
-bgCanvas.height = 800 * dpr;
-bgCtx.scale(dpr, dpr);
+bgCanvas.width = 800;
+bgCanvas.height = 800;
 
 function drawBgGrid() {
     bgCtx.fillStyle = 'white';

@@ -136,6 +136,10 @@ body {
     /* Strong edge border to distinguish map bounds */
     border: 8px solid rgba(0, 0, 0, 0.8);
     box-sizing: border-box;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-crisp-edges;
+    image-rendering: crisp-edges;
+    image-rendering: pixelated;
 }
 
 #bg-canvas {
