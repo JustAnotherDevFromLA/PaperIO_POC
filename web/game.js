@@ -120,6 +120,7 @@ let grid = [];
 
 
 let entities = [];
+let myPlayer = null;
 let idCounter = 1;
 let kingId = null;
 
@@ -577,7 +578,7 @@ function startGame() {
 
     // Create player
     let playerSpawn = {x: Math.floor(Math.random() * 40) + 5, y: Math.floor(Math.random() * 40) + 5};
-    entities.push({
+    myPlayer = {
         id: idCounter++,
         name: playerName || "Player",
         isReal: true,
@@ -591,7 +592,8 @@ function startGame() {
         killCount: 0,
         isDead: false,
         collisionCell: null
-    });
+    };
+    entities.push(myPlayer);
 
     // Create Bots
     const availableColors = Object.values(COLORS).filter(c => c !== selectedColorHex && c !== COLORS.gridLines && c !== COLORS.pathOpacity);
@@ -1846,7 +1848,6 @@ function drawGame(progress) {
 
     // Normal play crown rendering has been moved to the DOM overlay to prevent clipping at the borders.
 
-    let myPlayer = entities.find(e => e.isReal);
     if (myPlayer) {
         let boardWrapper = document.getElementById('board-wrapper');
         if (boardWrapper) {
