@@ -1756,27 +1756,30 @@ function drawGame(progress) {
         }
 
         ctx.fillStyle = e.color;
-        // Fast fillRect loop instead of expensive beginPath/fill operations for complex paths
+        ctx.beginPath();
+        // Fast rect loop added to a single path to prevent alpha-multiplying overlaps
         for(let p of e.path) {
             let px = p.x * CELL_SIZE;
             let py = p.y * CELL_SIZE;
             // Cull individual path segments that are off-screen
             if (px > viewLeft && px < viewRight && py > viewTop && py < viewBottom) {
                 // Expand by 0.5px to eliminate sub-pixel anti-aliasing seams between path segments
-                ctx.fillRect(px - 0.5, py - 0.5, CELL_SIZE + 1, CELL_SIZE + 1);
+                ctx.rect(px - 0.5, py - 0.5, CELL_SIZE + 1, CELL_SIZE + 1);
             }
         }
         
         // Dynamically connect the smooth visual head to the discrete grid trail
-        if (e.path.length > 0) {
+        // Ensure this draws immediately when stepping out of territory (even if e.path is empty)
+        if (e.path.length > 0 || grid[e.pos.x][e.pos.y] !== e.id) {
             let tailX = (e.pos.x - e.currentDir.dx) * CELL_SIZE;
             let tailY = (e.pos.y - e.currentDir.dy) * CELL_SIZE;
             let minX = Math.min(tailX, e.visualPos.x);
             let minY = Math.min(tailY, e.visualPos.y);
             let w = Math.abs(tailX - e.visualPos.x) + CELL_SIZE;
             let h = Math.abs(tailY - e.visualPos.y) + CELL_SIZE;
-            ctx.fillRect(minX - 0.5, minY - 0.5, w + 1, h + 1);
+            ctx.rect(minX - 0.5, minY - 0.5, w + 1, h + 1);
         }
+        ctx.fill();
     });
     ctx.globalAlpha = 1.0;
 
