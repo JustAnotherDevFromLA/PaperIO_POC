@@ -1648,9 +1648,9 @@ function gameLoop(time) {
     if (dt > 1000) dt = 16;
     lastTime = time;
     
-    // Fast forward time by 6x when the real player is dead
+    // Fast forward time by 2x when the real player is dead
     if (myPlayer && myPlayer.isDead) {
-        dt *= 6.0;
+        dt *= 2.0;
     }
     
     if (isPaused) {
