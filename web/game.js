@@ -1921,8 +1921,8 @@ function drawGame(progress) {
                 let bw = boardWrapper.clientWidth;
                 let bh = boardWrapper.clientHeight;
                 
-                let maxOffsetX = 150;
-                let minOffsetX = viewportWidth - bw - 150;
+                let maxOffsetX = 50;
+                let minOffsetX = viewportWidth - bw - 50;
                 
                 if (minOffsetX > maxOffsetX) {
                     offsetX = (viewportWidth - bw) / 2;
@@ -1932,8 +1932,8 @@ function drawGame(progress) {
                     offsetX = clampedOffsetX;
                 }
                 
-                let maxOffsetY = 150;
-                let minOffsetY = viewportHeight - bh - 150;
+                let maxOffsetY = 50;
+                let minOffsetY = viewportHeight - bh - 50;
                 
                 if (minOffsetY > maxOffsetY) {
                     offsetY = (viewportHeight - bh) / 2;
@@ -1953,10 +1953,10 @@ function drawGame(progress) {
                 currentCamOffsetY = targetOffsetY;
                 currentCamScale = targetScale;
             } else {
-                // Smooth interpolation factor
-                currentCamOffsetX += (targetOffsetX - currentCamOffsetX) * 0.1;
-                currentCamOffsetY += (targetOffsetY - currentCamOffsetY) * 0.1;
-                currentCamScale += (targetScale - currentCamScale) * 0.1;
+                // Slower interpolation factor for more cinematic, graceful transitions
+                currentCamOffsetX += (targetOffsetX - currentCamOffsetX) * 0.04;
+                currentCamOffsetY += (targetOffsetY - currentCamOffsetY) * 0.04;
+                currentCamScale += (targetScale - currentCamScale) * 0.04;
             }
 
             boardWrapper.style.transform = `translate3d(${currentCamOffsetX}px, ${currentCamOffsetY}px, 0) scale(${currentCamScale})`;
@@ -1987,13 +1987,21 @@ function drawGame(progress) {
                         }
                     }
 
-                    // Using canvasRect ensures the crown stays perfectly pinned even during zoom/panning
-                    let screenX = canvasRect.left + 8 + (king.visualPos.x + CELL_SIZE / 2) * scaleX;
-                    let baseOffsetY = -2 * scaleY; // Sits lower on the head
-                    let screenY = canvasRect.top + 8 + (king.visualPos.y + squareYOffset - crownToss) * scaleY + baseOffsetY;
+                    // Use pure mathematical projection relative to board wrapper to eliminate bounding rect jitter
+                    let bwRaw = boardWrapper.clientWidth;
+                    let bhRaw = boardWrapper.clientHeight;
+                    let rawScaleX = (bwRaw - 16) / 800;
+                    let rawScaleY = (bhRaw - 16) / 800;
+
+                    let rawX = 8 + (king.visualPos.x + CELL_SIZE / 2) * rawScaleX;
+                    let rawY = 8 + (king.visualPos.y + squareYOffset - crownToss) * rawScaleY + (-2 * rawScaleY);
+
+                    let screenX = rawX * currentCamScale + currentCamOffsetX;
+                    let screenY = rawY * currentCamScale + currentCamOffsetY;
+                    let finalScaleX = rawScaleX * currentCamScale;
 
                     winCrown.style.display = "block";
-                    winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${0.8 * scaleX})`;
+                    winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${0.8 * finalScaleX})`;
                 } else {
                     winCrown.style.display = "none";
                 }
