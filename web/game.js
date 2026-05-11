@@ -1426,11 +1426,8 @@ window.addEventListener("touchstart", e => {
 
 window.addEventListener("touchmove", e => {
     e.preventDefault();
-    let player = entities.find(ent => ent.isReal);
-    
-    // Allow panning if game is won, or if player is dead and waiting to respawn
-    if (!isPlaying || (player && player.isDead)) {
-        if (isWon || (player && player.isDead)) {
+    if (!isPlaying) {
+        if (isWon) {
             let dx = e.touches[0].screenX - touchStartX;
             let dy = e.touches[0].screenY - touchStartY;
             deadCameraOffset.x += dx;
@@ -1440,6 +1437,9 @@ window.addEventListener("touchmove", e => {
         }
         return;
     }
+    
+    let player = entities.find(ent => ent.isReal);
+    if (!player || player.isDead) return;
 
     let touchEndX = e.touches[0].screenX;
     let touchEndY = e.touches[0].screenY;
@@ -1471,8 +1471,7 @@ window.addEventListener("touchmove", e => {
 }, { passive: false });
 
 window.addEventListener("mousedown", e => {
-    let player = entities.find(ent => ent.isReal);
-    if ((!isPlaying && isWon) || (player && player.isDead)) {
+    if (!isPlaying && isWon) {
         isMouseDragging = true;
         touchStartX = e.clientX;
         touchStartY = e.clientY;
@@ -1480,8 +1479,7 @@ window.addEventListener("mousedown", e => {
 });
 
 window.addEventListener("mousemove", e => {
-    let player = entities.find(ent => ent.isReal);
-    if (isMouseDragging && ((!isPlaying && isWon) || (player && player.isDead))) {
+    if (isMouseDragging && !isPlaying && isWon) {
         let dx = e.clientX - touchStartX;
         let dy = e.clientY - touchStartY;
         deadCameraOffset.x += dx;
@@ -1886,28 +1884,49 @@ function drawGame(progress) {
             let offsetX = viewportWidth / 2 - px;
             let offsetY = viewportHeight / 2 - py;
             
-            // Apply dead panning offset
-            offsetX += deadCameraOffset.x;
-            offsetY += deadCameraOffset.y;
+            boardWrapper.style.transformOrigin = "0 0";
             
-            // Loose clamp to prevent panning infinitely off into the abyss when dead.
-            // Active players will never hit this clamp because they are bound by the map itself.
-            let bw = boardWrapper.clientWidth;
-            let bh = boardWrapper.clientHeight;
+            let scaleFactor = 1.0;
             
-            let maxOffsetX = viewportWidth;
-            let minOffsetX = -bw;
-            let clampedOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
-            deadCameraOffset.x -= (offsetX - clampedOffsetX);
-            offsetX = clampedOffsetX;
+            if (myPlayer.isDead) {
+                // Smoothly clear the camera offset so it doesn't snap if they died while panning
+                deadCameraOffset = {x: 0, y: 0};
+                
+                let bw = boardWrapper.clientWidth;
+                let bh = boardWrapper.clientHeight;
+                
+                let fitScaleX = viewportWidth / bw;
+                let fitScaleY = viewportHeight / bh;
+                scaleFactor = Math.min(fitScaleX, fitScaleY) * 0.95; 
+                
+                offsetX = (viewportWidth - (bw * scaleFactor)) / 2;
+                offsetY = (viewportHeight - (bh * scaleFactor)) / 2;
+            } else {
+                // Apply dead panning offset (only used during isWon state now)
+                offsetX += deadCameraOffset.x;
+                offsetY += deadCameraOffset.y;
+                
+                let bw = boardWrapper.clientWidth;
+                let bh = boardWrapper.clientHeight;
+                
+                let maxOffsetX = viewportWidth;
+                let minOffsetX = -bw;
+                let clampedOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
+                deadCameraOffset.x -= (offsetX - clampedOffsetX);
+                offsetX = clampedOffsetX;
+                
+                let maxOffsetY = viewportHeight;
+                let minOffsetY = -bh;
+                let clampedOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
+                deadCameraOffset.y -= (offsetY - clampedOffsetY);
+                offsetY = clampedOffsetY;
+            }
             
-            let maxOffsetY = viewportHeight;
-            let minOffsetY = -bh;
-            let clampedOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
-            deadCameraOffset.y -= (offsetY - clampedOffsetY);
-            offsetY = clampedOffsetY;
-            
-            boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+            if (scaleFactor !== 1.0) {
+                boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0) scale(${scaleFactor})`;
+            } else {
+                boardWrapper.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
+            }
 
             let winCrown = document.getElementById("win-crown-overlay");
             if (winCrown) {
