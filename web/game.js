@@ -2022,10 +2022,8 @@ function drawGame(progress) {
                             squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
                         }
 
-                        if (t >= 0.2 && t <= 0.9) {
-                            let tossU = (t - 0.2) / 0.7;
-                            crownToss = Math.sin(tossU * Math.PI) * 25;
-                        }
+                        // The user requested the crown to stay directly above the player square.
+                        // We removed the crownToss variable completely so it stays perfectly pinned.
                     }
 
                     // Use pure mathematical projection relative to board wrapper to eliminate bounding rect jitter
