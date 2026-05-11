@@ -1732,11 +1732,11 @@ function drawGame(progress) {
             
             fxCtx.save();
             const canvasRect = canvas.getBoundingClientRect();
-            let scaleX = canvasRect.width / 800;
-            let scaleY = canvasRect.height / 800;
+            let scaleX = (canvasRect.width - 16) / 800;
+            let scaleY = (canvasRect.height - 16) / 800;
             
-            let screenX = canvasRect.left + e.visualPos.x * scaleX;
-            let screenY = canvasRect.top + e.visualPos.y * scaleY;
+            let screenX = canvasRect.left + 8 + e.visualPos.x * scaleX;
+            let screenY = canvasRect.top + 8 + e.visualPos.y * scaleY;
             let sSize = CELL_SIZE * scaleX;
             
             fxCtx.translate(screenX + sSize/2, screenY + sSize/2 - (jump * scaleY));
@@ -1783,13 +1783,13 @@ function drawGame(progress) {
 
     // Normal play crown rendering has been moved to the DOM overlay to prevent clipping at the borders.
 
-    // Camera follow logic
     let myPlayer = entities.find(e => e.isReal);
     if (myPlayer) {
         let boardWrapper = document.getElementById('board-wrapper');
         if (boardWrapper) {
-            let scaleX = canvas.clientWidth / 800;
-            let scaleY = canvas.clientHeight / 800;
+            const canvasRect = canvas.getBoundingClientRect();
+            let scaleX = (canvasRect.width - 16) / 800;
+            let scaleY = (canvasRect.height - 16) / 800;
             let px = (myPlayer.visualPos.x + CELL_SIZE / 2) * scaleX;
             let py = (myPlayer.visualPos.y + CELL_SIZE / 2) * scaleY;
             
