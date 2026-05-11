@@ -1916,17 +1916,27 @@ function drawGame(progress) {
                 let bw = boardWrapper.clientWidth;
                 let bh = boardWrapper.clientHeight;
                 
-                let maxOffsetX = viewportWidth;
-                let minOffsetX = -bw;
-                let clampedOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
-                deadCameraOffset.x -= (offsetX - clampedOffsetX);
-                offsetX = clampedOffsetX;
+                let maxOffsetX = 150;
+                let minOffsetX = viewportWidth - bw - 150;
                 
-                let maxOffsetY = viewportHeight;
-                let minOffsetY = -bh;
-                let clampedOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
-                deadCameraOffset.y -= (offsetY - clampedOffsetY);
-                offsetY = clampedOffsetY;
+                if (minOffsetX > maxOffsetX) {
+                    offsetX = (viewportWidth - bw) / 2;
+                } else {
+                    let clampedOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
+                    deadCameraOffset.x -= (offsetX - clampedOffsetX);
+                    offsetX = clampedOffsetX;
+                }
+                
+                let maxOffsetY = 150;
+                let minOffsetY = viewportHeight - bh - 150;
+                
+                if (minOffsetY > maxOffsetY) {
+                    offsetY = (viewportHeight - bh) / 2;
+                } else {
+                    let clampedOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
+                    deadCameraOffset.y -= (offsetY - clampedOffsetY);
+                    offsetY = clampedOffsetY;
+                }
             }
             
             let targetOffsetX = offsetX;
@@ -1972,10 +1982,10 @@ function drawGame(progress) {
                         }
                     }
 
-                    // Add 8px to account for the canvas border pushing the content inwards
-                    let screenX = (king.visualPos.x + CELL_SIZE / 2) * scaleX + offsetX + 8;
+                    // Using canvasRect ensures the crown stays perfectly pinned even during zoom/panning
+                    let screenX = canvasRect.left + 8 + (king.visualPos.x + CELL_SIZE / 2) * scaleX;
                     let baseOffsetY = -2 * scaleY; // Sits lower on the head
-                    let screenY = (king.visualPos.y + squareYOffset - crownToss) * scaleY + offsetY + baseOffsetY + 8;
+                    let screenY = canvasRect.top + 8 + (king.visualPos.y + squareYOffset - crownToss) * scaleY + baseOffsetY;
 
                     winCrown.style.display = "block";
                     winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${0.8 * scaleX})`;
