@@ -1080,7 +1080,8 @@ function updateBotAI(bot) {
             
             let manhattanToBase = getManhattanToBase(nx, ny, bot.id, 20);
             if (distToBase > manhattanToBase + 2) {
-                risk += (distToBase - manhattanToBase) * 200; 
+                // Quadratic penalty to counter quadratic area reward and prevent spiraling/coiling
+                risk += Math.pow(distToBase - manhattanToBase, 2) * 100; 
             }
         } else {
             if (closestEnemyObj) {
@@ -1918,29 +1919,34 @@ function drawGame(progress) {
                 offsetX += deadCameraOffset.x;
                 offsetY += deadCameraOffset.y;
                 
-                let bw = boardWrapper.clientWidth;
-                let bh = boardWrapper.clientHeight;
-                
-                let maxOffsetX = 50;
-                let minOffsetX = viewportWidth - bw - 50;
-                
-                if (minOffsetX > maxOffsetX) {
-                    offsetX = (viewportWidth - bw) / 2;
-                } else {
-                    let clampedOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
-                    deadCameraOffset.x -= (offsetX - clampedOffsetX);
-                    offsetX = clampedOffsetX;
-                }
-                
-                let maxOffsetY = 50;
-                let minOffsetY = viewportHeight - bh - 50;
-                
-                if (minOffsetY > maxOffsetY) {
-                    offsetY = (viewportHeight - bh) / 2;
-                } else {
-                    let clampedOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
-                    deadCameraOffset.y -= (offsetY - clampedOffsetY);
-                    offsetY = clampedOffsetY;
+                // We only clamp the camera bounds if the game is over!
+                // During normal gameplay, the camera should NOT clamp, keeping the player perfectly centered
+                // so they can see the maximum possible distance ahead even when near the map border.
+                if (!isPlaying && isWon) {
+                    let bw = boardWrapper.clientWidth;
+                    let bh = boardWrapper.clientHeight;
+                    
+                    let maxOffsetX = 50;
+                    let minOffsetX = viewportWidth - bw - 50;
+                    
+                    if (minOffsetX > maxOffsetX) {
+                        offsetX = (viewportWidth - bw) / 2;
+                    } else {
+                        let clampedOffsetX = Math.max(minOffsetX, Math.min(maxOffsetX, offsetX));
+                        deadCameraOffset.x -= (offsetX - clampedOffsetX);
+                        offsetX = clampedOffsetX;
+                    }
+                    
+                    let maxOffsetY = 50;
+                    let minOffsetY = viewportHeight - bh - 50;
+                    
+                    if (minOffsetY > maxOffsetY) {
+                        offsetY = (viewportHeight - bh) / 2;
+                    } else {
+                        let clampedOffsetY = Math.max(minOffsetY, Math.min(maxOffsetY, offsetY));
+                        deadCameraOffset.y -= (offsetY - clampedOffsetY);
+                        offsetY = clampedOffsetY;
+                    }
                 }
             }
             
@@ -1953,10 +1959,10 @@ function drawGame(progress) {
                 currentCamOffsetY = targetOffsetY;
                 currentCamScale = targetScale;
             } else {
-                // Slower interpolation factor for more cinematic, graceful transitions
-                currentCamOffsetX += (targetOffsetX - currentCamOffsetX) * 0.04;
-                currentCamOffsetY += (targetOffsetY - currentCamOffsetY) * 0.04;
-                currentCamScale += (targetScale - currentCamScale) * 0.04;
+                // Smooth interpolation factor (0.07 is slightly faster than 0.04)
+                currentCamOffsetX += (targetOffsetX - currentCamOffsetX) * 0.07;
+                currentCamOffsetY += (targetOffsetY - currentCamOffsetY) * 0.07;
+                currentCamScale += (targetScale - currentCamScale) * 0.07;
             }
 
             boardWrapper.style.transform = `translate3d(${currentCamOffsetX}px, ${currentCamOffsetY}px, 0) scale(${currentCamScale})`;
