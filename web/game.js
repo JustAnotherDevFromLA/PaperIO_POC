@@ -678,7 +678,8 @@ function updateTerritoryCount() {
     for (let c in regionsByColor) {
         bgCtx.fillStyle = c;
         for (let p of regionsByColor[c]) {
-            bgCtx.fillRect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            // Expand by 0.5px to completely eliminate sub-pixel anti-aliasing grid seams
+            bgCtx.fillRect(p.x * CELL_SIZE - 0.5, p.y * CELL_SIZE - 0.5, CELL_SIZE + 1, CELL_SIZE + 1);
         }
     }
 
@@ -1286,8 +1287,9 @@ function fillEnclosedArea(id) {
     // Process path removal in O(P) instead of O(N*P) to prevent severe GC lag spikes
     entities.forEach(other => {
         if (other.id !== id && !other.isDead && other.path.length > 0) {
-            // ONLY remove paths that fall exactly on the newly captured cells (marked as 3)
-            other.path = other.path.filter(p => fillTempGrid[p.x * GRID_SIZE + p.y] !== 3);
+            // Retain O(P) optimization, but correctly filter against ALL of player's territory
+            // This ensures enemy paths that overlap the boundary ring itself are also correctly culled!
+            other.path = other.path.filter(p => grid[p.x][p.y] !== id);
         }
     });
 }
@@ -1760,8 +1762,20 @@ function drawGame(progress) {
             let py = p.y * CELL_SIZE;
             // Cull individual path segments that are off-screen
             if (px > viewLeft && px < viewRight && py > viewTop && py < viewBottom) {
-                ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+                // Expand by 0.5px to eliminate sub-pixel anti-aliasing seams between path segments
+                ctx.fillRect(px - 0.5, py - 0.5, CELL_SIZE + 1, CELL_SIZE + 1);
             }
+        }
+        
+        // Dynamically connect the smooth visual head to the discrete grid trail
+        if (e.path.length > 0) {
+            let tailX = (e.pos.x - e.currentDir.dx) * CELL_SIZE;
+            let tailY = (e.pos.y - e.currentDir.dy) * CELL_SIZE;
+            let minX = Math.min(tailX, e.visualPos.x);
+            let minY = Math.min(tailY, e.visualPos.y);
+            let w = Math.abs(tailX - e.visualPos.x) + CELL_SIZE;
+            let h = Math.abs(tailY - e.visualPos.y) + CELL_SIZE;
+            ctx.fillRect(minX - 0.5, minY - 0.5, w + 1, h + 1);
         }
     });
     ctx.globalAlpha = 1.0;
