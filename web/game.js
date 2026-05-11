@@ -807,6 +807,10 @@ function respawnBot(bot) {
     updateTerritoryCount();
 }
 
+// Pre-allocate a flat array for the BFS queue to avoid object allocation and shift() overhead.
+// Max size is GRID_SIZE * GRID_SIZE * 3 (x, y, dist).
+let bfsQueue = new Int16Array(50 * 50 * 3);
+
 function getShortestPathToBase(startX, startY, botId) {
     if (grid[startX][startY] === botId) return 0;
     
@@ -816,24 +820,33 @@ function getShortestPathToBase(startX, startY, botId) {
         bfsVisitId = 1;
     }
     
-    let queue = [{x: startX, y: startY, dist: 0}];
+    let head = 0;
+    let tail = 0;
+    
+    bfsQueue[tail++] = startX;
+    bfsQueue[tail++] = startY;
+    bfsQueue[tail++] = 0;
+    
     bfsVisited[startX * GRID_SIZE + startY] = bfsVisitId;
     
-    while(queue.length > 0) {
-        let curr = queue.shift();
+    while(head < tail) {
+        let cx = bfsQueue[head++];
+        let cy = bfsQueue[head++];
+        let dist = bfsQueue[head++];
         
         for (let d of [{dx:0,dy:1},{dx:0,dy:-1},{dx:1,dy:0},{dx:-1,dy:0}]) {
-            let nx = curr.x + d.dx;
-            let ny = curr.y + d.dy;
+            let nx = cx + d.dx;
+            let ny = cy + d.dy;
             
             if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
-                if (grid[nx][ny] === botId) return curr.dist + 1;
+                if (grid[nx][ny] === botId) return dist + 1;
                 
                 let idx = nx * GRID_SIZE + ny;
-                // pathGrid prevents us from intersecting our own path (O(1))
                 if (bfsVisited[idx] !== bfsVisitId && pathGrid[idx] !== botId) {
                     bfsVisited[idx] = bfsVisitId;
-                    queue.push({x: nx, y: ny, dist: curr.dist + 1});
+                    bfsQueue[tail++] = nx;
+                    bfsQueue[tail++] = ny;
+                    bfsQueue[tail++] = dist + 1;
                 }
             }
         }
@@ -850,26 +863,33 @@ function getShortestPathToEdge(startX, startY, botId) {
         bfsVisitId = 1;
     }
     
-    let queue = [{x: startX, y: startY, dist: 0}];
-    bfsVisited[startX * GRID_SIZE + startY] = bfsVisitId;
-    let cellsExplored = 0;
+    let head = 0;
+    let tail = 0;
     
-    while(queue.length > 0) {
-        let curr = queue.shift();
-        cellsExplored++;
-        if (cellsExplored > 200) return curr.dist; 
+    bfsQueue[tail++] = startX;
+    bfsQueue[tail++] = startY;
+    bfsQueue[tail++] = 0;
+    
+    bfsVisited[startX * GRID_SIZE + startY] = bfsVisitId;
+    
+    while(head < tail) {
+        let cx = bfsQueue[head++];
+        let cy = bfsQueue[head++];
+        let dist = bfsQueue[head++];
         
         for (let d of [{dx:0,dy:1},{dx:0,dy:-1},{dx:1,dy:0},{dx:-1,dy:0}]) {
-            let nx = curr.x + d.dx;
-            let ny = curr.y + d.dy;
+            let nx = cx + d.dx;
+            let ny = cy + d.dy;
             
             if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
-                if (grid[nx][ny] !== botId) return curr.dist + 1;
+                if (grid[nx][ny] !== botId) return dist + 1;
                 
                 let idx = nx * GRID_SIZE + ny;
                 if (bfsVisited[idx] !== bfsVisitId) {
                     bfsVisited[idx] = bfsVisitId;
-                    queue.push({x: nx, y: ny, dist: curr.dist + 1});
+                    bfsQueue[tail++] = nx;
+                    bfsQueue[tail++] = ny;
+                    bfsQueue[tail++] = dist + 1;
                 }
             }
         }
@@ -985,9 +1005,9 @@ function updateBotAI(bot) {
         
         if (bot.path.length === 0) {
             let distToEdge = getShortestPathToEdge(nx, ny, bot.id);
-            reward += (50 - distToEdge) * 100; 
+            reward += (200 - distToEdge) * 500; // Sprint to the closest empty cell
             if (!isNextCellBase) {
-                reward += 5000; // HUGE bonus to finally step out of base!
+                reward += 20000; // HUGE bonus to finally step out of base and start capturing!
             }
         } else {
             if (!isNextCellBase) {
@@ -1039,7 +1059,8 @@ function updateBotAI(bot) {
         let risk = 0;
         
         if (!inBase) {
-            let distancePenaltyMultiplier = (closestEnemyDist > 20) ? 5 : 20;
+            // If enemy is far away, the bot feels NO penalty for venturing far out. It will finish off capturing the board.
+            let distancePenaltyMultiplier = (closestEnemyDist > 30) ? 0 : ((closestEnemyDist > 15) ? 5 : 20);
             risk += distToBase * distancePenaltyMultiplier;
             
             if (closestEnemyToPath < 15) {
