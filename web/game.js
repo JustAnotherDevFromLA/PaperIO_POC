@@ -6,6 +6,10 @@ const ctx = canvas.getContext('2d');
 
 let dpr = Math.max(window.devicePixelRatio || 1, 2); // Keep dpr for UI/FX if needed
 
+let pathGrid = new Int16Array(50 * 50); // Hardcoded GRID_SIZE 50
+let bfsVisited = new Uint16Array(50 * 50);
+let bfsVisitId = 0;
+
 // DO NOT SCALE the giant game board canvases! Doing so exceeds iOS GPU memory limits and forces slow CPU compositing.
 canvas.width = 800;
 canvas.height = 800;
@@ -709,11 +713,20 @@ function updateLeaderboardUI() {
         kingId = null;
     }
 
-    leaderboard.innerHTML = "";
-
-    players.forEach((p, index) => {
+    // Optimization: Avoid destroying and recreating DOM nodes (DOM thrashing)
+    // Only create missing nodes, then update their contents
+    while (leaderboard.children.length < players.length) {
         const square = document.createElement("div");
         square.className = "leaderboard-square";
+        leaderboard.appendChild(square);
+    }
+    while (leaderboard.children.length > players.length) {
+        leaderboard.removeChild(leaderboard.lastChild);
+    }
+
+    players.forEach((p, index) => {
+        const square = leaderboard.children[index];
+        square.className = "leaderboard-square"; // reset
         if (p.isReal) square.classList.add("is-player");
         
         square.style.backgroundColor = p.color;
@@ -722,14 +735,15 @@ function updateLeaderboardUI() {
             square.classList.add("dead");
             square.id = `timer-${p.id}`;
             if (isPlaying) {
-                square.textContent = `${Math.ceil(p.respawnTimer)}`;
+                square.innerHTML = `${Math.ceil(p.respawnTimer)}`;
+            } else {
+                square.innerHTML = "";
             }
         } else if (index === 0) {
-            // Crown for the current leader
             square.innerHTML = `<svg width="14" height="12" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); transform: translateY(1px);"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
+        } else {
+            square.innerHTML = "";
         }
-        
-        leaderboard.appendChild(square);
     });
 }
 
@@ -791,16 +805,17 @@ function respawnBot(bot) {
     updateTerritoryCount();
 }
 
-function getShortestPathToBase(startX, startY, botId, botPath) {
+function getShortestPathToBase(startX, startY, botId) {
     if (grid[startX][startY] === botId) return 0;
     
-    let queue = [{x: startX, y: startY, dist: 0}];
-    let visited = new Set();
-    visited.add(`${startX},${startY}`);
-    let pathSet = new Set();
-    for (let i = 0; i < botPath.length; i++) pathSet.add(`${botPath[i].x},${botPath[i].y}`);
+    bfsVisitId++;
+    if (bfsVisitId >= 65000) {
+        bfsVisited.fill(0);
+        bfsVisitId = 1;
+    }
     
-    let cellsExplored = 0;
+    let queue = [{x: startX, y: startY, dist: 0}];
+    bfsVisited[startX * GRID_SIZE + startY] = bfsVisitId;
     
     while(queue.length > 0) {
         let curr = queue.shift();
@@ -812,9 +827,10 @@ function getShortestPathToBase(startX, startY, botId, botPath) {
             if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
                 if (grid[nx][ny] === botId) return curr.dist + 1;
                 
-                let key = `${nx},${ny}`;
-                if (!visited.has(key) && !pathSet.has(key)) {
-                    visited.add(key);
+                let idx = nx * GRID_SIZE + ny;
+                // pathGrid prevents us from intersecting our own path (O(1))
+                if (bfsVisited[idx] !== bfsVisitId && pathGrid[idx] !== botId) {
+                    bfsVisited[idx] = bfsVisitId;
                     queue.push({x: nx, y: ny, dist: curr.dist + 1});
                 }
             }
@@ -826,9 +842,14 @@ function getShortestPathToBase(startX, startY, botId, botPath) {
 function getShortestPathToEdge(startX, startY, botId) {
     if (grid[startX][startY] !== botId) return 0;
     
+    bfsVisitId++;
+    if (bfsVisitId >= 65000) {
+        bfsVisited.fill(0);
+        bfsVisitId = 1;
+    }
+    
     let queue = [{x: startX, y: startY, dist: 0}];
-    let visited = new Set();
-    visited.add(`${startX},${startY}`);
+    bfsVisited[startX * GRID_SIZE + startY] = bfsVisitId;
     let cellsExplored = 0;
     
     while(queue.length > 0) {
@@ -843,9 +864,9 @@ function getShortestPathToEdge(startX, startY, botId) {
             if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
                 if (grid[nx][ny] !== botId) return curr.dist + 1;
                 
-                let key = `${nx},${ny}`;
-                if (!visited.has(key)) {
-                    visited.add(key);
+                let idx = nx * GRID_SIZE + ny;
+                if (bfsVisited[idx] !== bfsVisitId) {
+                    bfsVisited[idx] = bfsVisitId;
                     queue.push({x: nx, y: ny, dist: curr.dist + 1});
                 }
             }
@@ -886,18 +907,18 @@ function updateBotAI(bot) {
         return nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE;
     });
     
-    // Filter out own path
+    // Filter out own path (O(1) lookup via pathGrid)
     validDirs = validDirs.filter(d => {
         let nx = bot.pos.x + d.dx;
         let ny = bot.pos.y + d.dy;
-        return !bot.path.some(p => p.x === nx && p.y === ny);
+        return pathGrid[nx * GRID_SIZE + ny] !== bot.id;
     });
 
     // Topological Safety Check: Do not enter dead-ends!
     validDirs = validDirs.filter(d => {
         let nx = bot.pos.x + d.dx;
         let ny = bot.pos.y + d.dy;
-        d.distToBase = getShortestPathToBase(nx, ny, bot.id, bot.path);
+        d.distToBase = getShortestPathToBase(nx, ny, bot.id);
         return d.distToBase !== Infinity;
     });
 
@@ -1068,10 +1089,30 @@ function updateBotAI(bot) {
 }
 
 function moveEntities() {
+    // Rebuild global pathGrid for O(1) lookups
+    pathGrid.fill(0);
+    for (let e of entities) {
+        if (!e.isDead) {
+            for (let p of e.path) {
+                pathGrid[p.x * GRID_SIZE + p.y] = e.id;
+            }
+        }
+    }
+
+    let botIndex = 0;
+    let currentTick = window.gameTick || 0;
+    window.gameTick = currentTick + 1;
+
     entities.forEach(e => {
         if(e.isDead) return;
         
-        if(!e.isReal) updateBotAI(e);
+        if(!e.isReal) {
+            botIndex++;
+            // Rate limit bot AI execution to 1/3 of bots per frame to save CPU
+            if (botIndex % 3 === currentTick % 3) {
+                updateBotAI(e);
+            }
+        }
 
         e.currentDir = e.nextDir;
         let oldPos = {x: e.pos.x, y: e.pos.y};
@@ -1088,30 +1129,29 @@ function moveEntities() {
             return;
         }
 
-        // Self intersect
-        for(let p of e.path) {
-            if(p.x === e.pos.x && p.y === e.pos.y) {
+        // Fast path collision check via O(1) pathGrid
+        let pathOwner = pathGrid[e.pos.x * GRID_SIZE + e.pos.y];
+        if (pathOwner > 0) {
+            if (pathOwner === e.id) {
                 e.collisionCell = {x: e.pos.x, y: e.pos.y};
                 killEntity(e, null);
                 return;
+            } else {
+                let other = entities.find(o => o.id === pathOwner);
+                if (other && !other.isDead) {
+                    other.collisionCell = {x: e.pos.x, y: e.pos.y};
+                    killEntity(other, e);
+                    if(e.isReal) playTurnSound();
+                }
             }
         }
     });
     
-    // Check path cuts and head-to-head
+    // Check head-to-head (Path cuts are now handled in O(1) above!)
     entities.forEach(e => {
         if(e.isDead) return;
         entities.forEach(other => {
             if(other.isDead || e.id === other.id) return;
-            
-            // e cut other path
-            for(let p of other.path) {
-                if(p.x === e.pos.x && p.y === e.pos.y) {
-                    other.collisionCell = {x: e.pos.x, y: e.pos.y};
-                    killEntity(other, e);
-                    if(e.isReal) playTurnSound(); 
-                }
-            }
             
             // Head to head
             let crossed = (e.pos.x === (other.pos.x - other.currentDir.dx) && 
@@ -1656,12 +1696,40 @@ function drawGame(progress) {
 
     // Paths
     ctx.globalAlpha = 0.5;
+    
+    // Viewport bounds calculation for path/head culling
+    let canvasRectWidth = window.innerWidth;
+    let canvasRectHeight = window.innerHeight;
+    let scaleX = canvasRectWidth / 800;
+    let scaleY = canvasRectHeight / 800;
+    let pxCam = (myPlayer.visualPos.x + CELL_SIZE / 2);
+    let pyCam = (myPlayer.visualPos.y + CELL_SIZE / 2);
+    
+    let viewLeft = pxCam - (canvasRectWidth / scaleX / 2) - 100;
+    let viewRight = pxCam + (canvasRectWidth / scaleX / 2) + 100;
+    let viewTop = pyCam - (canvasRectHeight / scaleY / 2) - 100;
+    let viewBottom = pyCam + (canvasRectHeight / scaleY / 2) + 100;
+
     entities.forEach(e => {
         if(e.isDead) return;
+        
+        // Fast off-screen prune: check if the entity's current head is way off-screen
+        let vx = e.visualPos.x;
+        let vy = e.visualPos.y;
+        if (vx < viewLeft - 1000 || vx > viewRight + 1000 || vy < viewTop - 1000 || vy > viewBottom + 1000) {
+             // If entity is extremely far off-screen, skip path rendering completely
+             return;
+        }
+
         ctx.fillStyle = e.color;
         // Fast fillRect loop instead of expensive beginPath/fill operations for complex paths
         for(let p of e.path) {
-            ctx.fillRect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
+            let px = p.x * CELL_SIZE;
+            let py = p.y * CELL_SIZE;
+            // Cull individual path segments that are off-screen
+            if (px > viewLeft && px < viewRight && py > viewTop && py < viewBottom) {
+                ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
+            }
         }
     });
     ctx.globalAlpha = 1.0;
