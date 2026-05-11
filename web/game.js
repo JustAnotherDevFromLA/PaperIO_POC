@@ -1648,6 +1648,11 @@ function gameLoop(time) {
     if (dt > 1000) dt = 16;
     lastTime = time;
     
+    // Fast forward time by 6x when the real player is dead
+    if (myPlayer && myPlayer.isDead) {
+        dt *= 6.0;
+    }
+    
     if (isPaused) {
         let progress = moveTimer / moveInterval;
         drawGame(progress);
