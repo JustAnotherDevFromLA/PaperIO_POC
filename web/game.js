@@ -669,7 +669,19 @@ function updateTerritoryCount() {
             tCtx.fill();
         }
     }
-    
+    entities.forEach(e => {
+        if (!e.isDead && isPlaying) {
+            let percent = ((e.territoryCount / TOTAL_CELLS) * 100);
+            if (percent >= 100) {
+                die(e.isReal);
+            }
+        }
+    });
+
+    updateLeaderboardUI();
+}
+
+function updateLeaderboardUI() {
     let players = entities.map(e => ({
         id: e.id,
         name: e.name,
@@ -714,15 +726,6 @@ function updateTerritoryCount() {
         }
         
         leaderboard.appendChild(square);
-    });
-
-    entities.forEach(e => {
-        if (!e.isDead && isPlaying) {
-            let percent = ((e.territoryCount / TOTAL_CELLS) * 100);
-            if (percent >= 100) {
-                die(e.isReal);
-            }
-        }
     });
 }
 
@@ -1195,16 +1198,9 @@ function fillEnclosedArea(id) {
             if(grid[x][y] !== id && fillTempGrid[x * GRID_SIZE + y] === 0) {
                 grid[x][y] = id;
                 
-                // Process encirclement logic on enemies
+                // Process head kills on enemies caught in the fill
                 entities.forEach(other => {
                     if (other.id !== id && !other.isDead) {
-                        // 1. Delete any uncaptured trail segments caught inside
-                        let pathLength = other.path.length;
-                        if (pathLength > 0) {
-                            other.path = other.path.filter(p => !(p.x === x && p.y === y));
-                        }
-                        
-                        // 2. Kill the opponent if their actual head is encircled
                         if (other.pos.x === x && other.pos.y === y) {
                             other.collisionCell = {x, y};
                             killEntity(other, entities.find(e => e.id === id));
@@ -1214,6 +1210,14 @@ function fillEnclosedArea(id) {
             }
         }
     }
+
+    // Process path removal in O(P) instead of O(N*P) to prevent severe GC lag spikes
+    entities.forEach(other => {
+        if (other.id !== id && !other.isDead && other.path.length > 0) {
+            // If the path point's cell was marked as enclosed (0), it was captured, so we filter it out.
+            other.path = other.path.filter(p => fillTempGrid[p.x * GRID_SIZE + p.y] !== 0);
+        }
+    });
 }
 
 function die(playerWon = false) {
@@ -1613,7 +1617,7 @@ function gameLoop(time) {
     
     // Force leaderboard resort when timers change
     if (timerUpdated) {
-        updateTerritoryCount();
+        updateLeaderboardUI();
     }
 
     moveTimer += dt;
