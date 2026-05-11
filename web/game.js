@@ -14,9 +14,7 @@ const gameOverLeaderboard = document.getElementById('game-over-leaderboard');
 const colorSwatches = document.querySelectorAll('.color-swatch');
 const startBtn = document.getElementById('start-btn');
 const restartBtn = document.getElementById('restart-btn');
-const quitBtn = document.getElementById('quit-btn');
 const quitToMenuBtn = document.getElementById('quit-to-menu-btn');
-const quitGameBtn = document.getElementById('quit-game-btn');
 
 let gridCanvas = null;
 function initGridCache() {
@@ -369,8 +367,7 @@ function closeApp() {
     window.close();
     window.location.href = "about:blank";
 }
-quitBtn.addEventListener("click", closeApp);
-quitGameBtn.addEventListener("click", closeApp);
+
 
 quitToMenuBtn.addEventListener("click", () => {
     gameOverScreen.classList.add("hidden");
@@ -1852,11 +1849,11 @@ function drawGame(progress) {
                     }
 
                     let screenX = (king.visualPos.x + CELL_SIZE / 2) * scaleX + offsetX;
-                    let baseOffsetY = -4 * scaleY;
+                    let baseOffsetY = -2 * scaleY; // Sits lower on the head
                     let screenY = (king.visualPos.y + squareYOffset - crownToss) * scaleY + offsetY + baseOffsetY;
 
                     winCrown.style.display = "block";
-                    winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${1.2 * scaleX})`;
+                    winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${0.8 * scaleX})`;
                 } else {
                     winCrown.style.display = "none";
                 }
