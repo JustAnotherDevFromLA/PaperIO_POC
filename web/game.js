@@ -1847,35 +1847,23 @@ function drawGame(progress) {
                 scaleY_squash = 1.0 - 0.2 * Math.sin(u * Math.PI);
             }
             
-            fxCtx.save();
-            let boardWrapper = document.getElementById('board-wrapper');
-            let bwRaw = boardWrapper.clientWidth;
-            let bhRaw = boardWrapper.clientHeight;
-            let rawScaleX = (bwRaw - 16) / 800;
-            let rawScaleY = (bhRaw - 16) / 800;
-
-            let rawX = 8 + e.visualPos.x * rawScaleX;
-            let rawY = 8 + e.visualPos.y * rawScaleY;
-
-            let screenX = rawX * currentCamScale + currentCamOffsetX;
-            let screenY = rawY * currentCamScale + currentCamOffsetY;
-            let finalScaleX = rawScaleX * currentCamScale;
-            let finalScaleY = rawScaleY * currentCamScale;
-            let sSize = CELL_SIZE * finalScaleX;
+            ctx.save();
+            let cx = e.visualPos.x + CELL_SIZE / 2;
+            let cy = e.visualPos.y + CELL_SIZE / 2 - jump;
             
-            fxCtx.translate(screenX + sSize/2, screenY + sSize/2 - (jump * finalScaleY));
-            fxCtx.rotate(rot);
-            fxCtx.scale(1.0, scaleY_squash);
-            fxCtx.translate(-(screenX + sSize/2), -(screenY + sSize/2));
+            ctx.translate(cx, cy);
+            ctx.rotate(rot);
+            ctx.scale(1.0, scaleY_squash);
+            ctx.translate(-cx, -cy);
             
-            fxCtx.fillStyle = e.color;
-            fxCtx.fillRect(screenX, screenY, sSize, sSize);
+            ctx.fillStyle = e.color;
+            ctx.fillRect(e.visualPos.x, e.visualPos.y - jump, CELL_SIZE, CELL_SIZE);
             
-            fxCtx.strokeStyle = "rgba(0,0,0,0.15)";
-            fxCtx.lineWidth = 1 * finalScaleX;
-            fxCtx.strokeRect(screenX, screenY, sSize, sSize);
+            ctx.strokeStyle = "rgba(0,0,0,0.15)";
+            ctx.lineWidth = 1;
+            ctx.strokeRect(e.visualPos.x, e.visualPos.y - jump, CELL_SIZE, CELL_SIZE);
             
-            fxCtx.restore();
+            ctx.restore();
             return;
         }
 
