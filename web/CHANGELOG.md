@@ -1,6 +1,6 @@
 # Papel.io Patch Notes
 
-## v1.4 - The Rendering & Stability Update
+## v1.3 - The Rendering & Stability Update
 *May 11, 2026*
 
 This major patch focuses heavily on stabilizing the core rendering pipeline, refining cinematic game transitions, and ensuring absolute precision for territory captures and trail displays. All recent experimental optimizations that caused visual artifacts have been stripped away and replaced with bulletproof, mathematically precise drawing routines.
@@ -20,4 +20,4 @@ This major patch focuses heavily on stabilizing the core rendering pipeline, ref
 * **Bulletproof Territory Capture:** Reverted highly aggressive O(1) area capture optimizations that accidentally broke the core logic for deleting trails trapped inside newly captured areas. The game now correctly processes physical boundary overlaps, preventing "ghost" trails or invisible death traps.
 
 ### 📱 PWA & Mobile Enhancements
-* **Cache Bumping:** Aggressively bumped service worker caching to ensure mobile Safari and Chrome users immediately receive the overhauled `v1.4` rendering logic without needing to clear local app data.
+* **Cache Bumping:** Aggressively bumped service worker caching to ensure mobile Safari and Chrome users immediately receive the overhauled `v1.3` rendering logic without needing to clear local app data.
