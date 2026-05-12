@@ -1803,8 +1803,12 @@ function gameLoop(time) {
     // Fast forward time by 2x when the real player is dead
     if (myPlayer && myPlayer.isDead) {
         dt *= 2.0;
-    } else if (!isPaused) {
-        gameActiveTimeMs += dt;
+    }
+    
+    if (!isPaused) {
+        // Track real elapsed time for the leaderboard, don't artificially inflate it if dt was doubled
+        let realDt = (myPlayer && myPlayer.isDead) ? dt / 2.0 : dt;
+        gameActiveTimeMs += realDt;
         if (gameTimerHud) {
             gameTimerHud.textContent = formatTime(gameActiveTimeMs);
         }
