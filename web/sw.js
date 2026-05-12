@@ -1,4 +1,4 @@
-const CACHE_NAME = 'paper-io-v118';
+const CACHE_NAME = 'paper-io-v119';
 const ASSETS = [
     './',
     './index.html',

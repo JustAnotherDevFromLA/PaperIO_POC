@@ -1751,17 +1751,34 @@ function drawGame(progress) {
              return;
         }
 
-        ctx.fillStyle = e.color;
+        // Solid contiguous line rendering with uniform opacity
+        ctx.globalAlpha = 0.5;
+        ctx.strokeStyle = e.color;
+        ctx.lineWidth = CELL_SIZE;
+        ctx.lineJoin = "miter";
+        ctx.lineCap = "square";
+        
         ctx.beginPath();
-        for(let p of e.path) {
-            let px = p.x * CELL_SIZE;
-            let py = p.y * CELL_SIZE;
-            // Cull individual path segments that are off-screen
-            if (px > viewLeft && px < viewRight && py > viewTop && py < viewBottom) {
-                ctx.rect(px, py, CELL_SIZE, CELL_SIZE);
+        let drawn = false;
+        
+        if (e.path.length > 0) {
+            ctx.moveTo(e.path[0].x * CELL_SIZE + CELL_SIZE/2, e.path[0].y * CELL_SIZE + CELL_SIZE/2);
+            for(let i=1; i<e.path.length; i++) {
+                ctx.lineTo(e.path[i].x * CELL_SIZE + CELL_SIZE/2, e.path[i].y * CELL_SIZE + CELL_SIZE/2);
             }
+            // Connect seamlessly to the moving visual head
+            ctx.lineTo(e.visualPos.x + CELL_SIZE/2, e.visualPos.y + CELL_SIZE/2);
+            drawn = true;
+        } else if (grid[e.pos.x][e.pos.y] !== e.id) {
+            // Player just stepped out of base: start line from edge of base
+            let tailX = (e.pos.x - e.currentDir.dx) * CELL_SIZE + CELL_SIZE/2;
+            let tailY = (e.pos.y - e.currentDir.dy) * CELL_SIZE + CELL_SIZE/2;
+            ctx.moveTo(tailX, tailY);
+            ctx.lineTo(e.visualPos.x + CELL_SIZE/2, e.visualPos.y + CELL_SIZE/2);
+            drawn = true;
         }
-        ctx.fill();
+        
+        if (drawn) ctx.stroke();
     });
     ctx.globalAlpha = 1.0;
 
