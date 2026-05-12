@@ -1806,9 +1806,7 @@ function gameLoop(time) {
     }
     
     if (!isPaused) {
-        // Track real elapsed time for the leaderboard, don't artificially inflate it if dt was doubled
-        let realDt = (myPlayer && myPlayer.isDead) ? dt / 2.0 : dt;
-        gameActiveTimeMs += realDt;
+        gameActiveTimeMs += dt;
         if (gameTimerHud) {
             gameTimerHud.textContent = formatTime(gameActiveTimeMs);
         }
