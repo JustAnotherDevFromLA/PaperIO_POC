@@ -530,13 +530,26 @@ function closeApp() {
 }
 
 
-quitToMenuBtn.addEventListener("click", () => {
+function quitToMenu() {
+    isPlaying = false;
+    isWon = false;
+    if (winAnimationFrame) {
+        cancelAnimationFrame(winAnimationFrame);
+        winAnimationFrame = null;
+    }
+    
     gameOverScreen.classList.add("hidden");
     menuScreen.classList.remove("hidden");
     canvas.classList.add("hidden");
     bgCanvas.classList.add("hidden");
     leaderboard.classList.add("hidden");
-});
+    if (gameTimerHud) gameTimerHud.classList.add("hidden");
+    
+    let winCrown = document.getElementById("win-crown-overlay");
+    if (winCrown) winCrown.style.display = "none";
+}
+
+quitToMenuBtn.addEventListener("click", quitToMenu);
 
 let actx = null;
 function initAudio() {
@@ -544,7 +557,7 @@ function initAudio() {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) actx = new AudioCtx();
     }
-    if (actx && actx.state === 'suspended') {
+    if (actx && actx.state !== 'running') {
         actx.resume();
     }
 }
@@ -556,6 +569,7 @@ document.addEventListener('keydown', initAudio, { passive: true });
 
 function playHitSound() {
     if (!actx || !isSoundEnabled) return;
+    if (actx.state !== 'running') actx.resume();
 
     const time = actx.currentTime;
 
@@ -603,6 +617,7 @@ function playHitSound() {
 }
 function playTurnSound() {
     if (!actx || !isSoundEnabled) return;
+    if (actx.state !== 'running') actx.resume();
 
     const osc = actx.createOscillator();
     const gainNode = actx.createGain();
@@ -624,6 +639,7 @@ function playTurnSound() {
 }
 function playFireworkSound() {
     if (!actx || !isSoundEnabled) return;
+    if (actx.state !== 'running') actx.resume();
     
     // 500ms to 1000ms randomized buffer delay
     const delay = 0.5 + (Math.random() * 0.5);
