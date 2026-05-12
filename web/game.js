@@ -549,6 +549,11 @@ function initAudio() {
     }
 }
 
+// Ensure audio context stays active by resuming on any interaction
+document.addEventListener('touchstart', initAudio, { passive: true });
+document.addEventListener('click', initAudio, { passive: true });
+document.addEventListener('keydown', initAudio, { passive: true });
+
 function playHitSound() {
     if (!actx || !isSoundEnabled) return;
 
