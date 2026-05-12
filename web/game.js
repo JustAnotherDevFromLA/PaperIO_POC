@@ -678,8 +678,7 @@ function updateTerritoryCount() {
     for (let c in regionsByColor) {
         bgCtx.fillStyle = c;
         for (let p of regionsByColor[c]) {
-            // Expand by 0.5px to completely eliminate sub-pixel anti-aliasing grid seams
-            bgCtx.fillRect(p.x * CELL_SIZE - 0.5, p.y * CELL_SIZE - 0.5, CELL_SIZE + 1, CELL_SIZE + 1);
+            bgCtx.fillRect(p.x * CELL_SIZE, p.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
         }
     }
 
@@ -1269,11 +1268,17 @@ function fillEnclosedArea(id) {
         for(let y=0; y<GRID_SIZE; y++){
             if(grid[x][y] !== id && fillTempGrid[x * GRID_SIZE + y] === 0) {
                 grid[x][y] = id;
-                fillTempGrid[x * GRID_SIZE + y] = 3; // Mark as newly captured for path filtering
                 
-                // Process head kills on enemies caught in the fill
+                // Process encirclement logic on enemies
                 entities.forEach(other => {
                     if (other.id !== id && !other.isDead) {
+                        // 1. Delete any uncaptured trail segments caught inside
+                        let pathLength = other.path.length;
+                        if (pathLength > 0) {
+                            other.path = other.path.filter(p => !(p.x === x && p.y === y));
+                        }
+                        
+                        // 2. Kill the opponent if their actual head is encircled
                         if (other.pos.x === x && other.pos.y === y) {
                             other.collisionCell = {x, y};
                             killEntity(other, entities.find(e => e.id === id));
@@ -1283,15 +1288,6 @@ function fillEnclosedArea(id) {
             }
         }
     }
-
-    // Process path removal in O(P) instead of O(N*P) to prevent severe GC lag spikes
-    entities.forEach(other => {
-        if (other.id !== id && !other.isDead && other.path.length > 0) {
-            // Retain O(P) optimization, but correctly filter against ALL of player's territory
-            // This ensures enemy paths that overlap the boundary ring itself are also correctly culled!
-            other.path = other.path.filter(p => grid[p.x][p.y] !== id);
-        }
-    });
 }
 
 function die(playerWon = false) {
@@ -1757,27 +1753,13 @@ function drawGame(progress) {
 
         ctx.fillStyle = e.color;
         ctx.beginPath();
-        // Fast rect loop added to a single path to prevent alpha-multiplying overlaps
         for(let p of e.path) {
             let px = p.x * CELL_SIZE;
             let py = p.y * CELL_SIZE;
             // Cull individual path segments that are off-screen
             if (px > viewLeft && px < viewRight && py > viewTop && py < viewBottom) {
-                // Expand by 0.5px to eliminate sub-pixel anti-aliasing seams between path segments
-                ctx.rect(px - 0.5, py - 0.5, CELL_SIZE + 1, CELL_SIZE + 1);
+                ctx.rect(px, py, CELL_SIZE, CELL_SIZE);
             }
-        }
-        
-        // Dynamically connect the smooth visual head to the discrete grid trail
-        // Ensure this draws immediately when stepping out of territory (even if e.path is empty)
-        if (e.path.length > 0 || grid[e.pos.x][e.pos.y] !== e.id) {
-            let tailX = (e.pos.x - e.currentDir.dx) * CELL_SIZE;
-            let tailY = (e.pos.y - e.currentDir.dy) * CELL_SIZE;
-            let minX = Math.min(tailX, e.visualPos.x);
-            let minY = Math.min(tailY, e.visualPos.y);
-            let w = Math.abs(tailX - e.visualPos.x) + CELL_SIZE;
-            let h = Math.abs(tailY - e.visualPos.y) + CELL_SIZE;
-            ctx.rect(minX - 0.5, minY - 0.5, w + 1, h + 1);
         }
         ctx.fill();
     });
