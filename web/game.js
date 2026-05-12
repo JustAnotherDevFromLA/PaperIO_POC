@@ -136,7 +136,14 @@ let currentCamScale = 1.0;
 let isMouseDragging = false;
 const moveInterval = 100; // ms per grid step
 let moveTimer = 0;
+let gameActiveTimeMs = 0;
 
+const gameTimerHud = document.getElementById("game-timer-hud");
+const globalLeaderboardModal = document.getElementById("global-leaderboard-modal");
+const globalLeaderboardList = document.getElementById("global-leaderboard-list");
+const closeGlobalLeaderboardBtn = document.getElementById("close-global-leaderboard-btn");
+const globalLeaderboardMenuBtn = document.getElementById("global-leaderboard-menu-btn");
+const globalLeaderboardEndBtn = document.getElementById("global-leaderboard-end-btn");
 
 const settingsBtn = document.getElementById("settings-btn");
 const settingsModal = document.getElementById("settings-modal");
@@ -219,6 +226,140 @@ function resizeFxCanvas() {
 }
 window.addEventListener("resize", resizeFxCanvas);
 resizeFxCanvas();
+
+// --- Global Leaderboard Logic ---
+function loadGlobalLeaderboard() {
+    let data = localStorage.getItem("papelio_global_leaderboard");
+    if (data) {
+        try {
+            return JSON.parse(data);
+        } catch(e) {
+            return [];
+        }
+    }
+    return [];
+}
+
+function saveToGlobalLeaderboard(player, isWin) {
+    if (!player || !player.isReal) return;
+    
+    let scores = loadGlobalLeaderboard();
+    let score = Math.floor((player.territoryCount / TOTAL_CELLS) * 10000); // 100.00%
+    
+    scores.push({
+        name: player.name,
+        color: player.color,
+        score: score,
+        kills: player.killCount || 0,
+        deaths: player.deathCount || (isWin ? 0 : 1),
+        timeMs: gameActiveTimeMs,
+        date: new Date().getTime()
+    });
+    
+    // Sort by Highest Score DESC, then Lowest Time ASC
+    scores.sort((a, b) => {
+        if (b.score !== a.score) return b.score - a.score;
+        return a.timeMs - b.timeMs;
+    });
+    
+    // Keep top 100
+    if (scores.length > 100) scores = scores.slice(0, 100);
+    
+    localStorage.setItem("papelio_global_leaderboard", JSON.stringify(scores));
+}
+
+function formatTime(ms) {
+    let totalSeconds = Math.floor(ms / 1000);
+    let minutes = Math.floor(totalSeconds / 60);
+    let seconds = totalSeconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function showGlobalLeaderboard() {
+    let scores = loadGlobalLeaderboard();
+    globalLeaderboardList.innerHTML = "";
+    
+    if (scores.length === 0) {
+        globalLeaderboardList.innerHTML = "<div style='text-align: center; color: #888; padding: 20px 0;'>No scores yet! Play a game to get on the board.</div>";
+    } else {
+        scores.forEach((s, i) => {
+            let row = document.createElement("div");
+            row.style.display = "flex";
+            row.style.justifyContent = "space-between";
+            row.style.alignItems = "center";
+            row.style.padding = "8px 12px";
+            row.style.background = i % 2 === 0 ? "rgba(0,0,0,0.03)" : "rgba(0,0,0,0.06)";
+            row.style.borderRadius = "8px";
+            
+            let left = document.createElement("div");
+            left.style.display = "flex";
+            left.style.alignItems = "center";
+            left.style.gap = "10px";
+            
+            let rank = document.createElement("span");
+            rank.style.fontWeight = "bold";
+            rank.style.color = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#666";
+            rank.style.minWidth = "24px";
+            rank.textContent = `#${i+1}`;
+            
+            let nameCont = document.createElement("div");
+            nameCont.style.display = "flex";
+            nameCont.style.flexDirection = "column";
+            
+            let nameText = document.createElement("span");
+            nameText.style.fontWeight = "bold";
+            nameText.style.color = s.color;
+            nameText.textContent = s.name;
+            
+            let statsText = document.createElement("span");
+            statsText.style.fontSize = "11px";
+            statsText.style.color = "#888";
+            statsText.textContent = `⚔️ ${s.kills} | 💀 ${s.deaths}`;
+            
+            nameCont.appendChild(nameText);
+            nameCont.appendChild(statsText);
+            
+            left.appendChild(rank);
+            left.appendChild(nameCont);
+            
+            let right = document.createElement("div");
+            right.style.display = "flex";
+            right.style.flexDirection = "column";
+            right.style.alignItems = "flex-end";
+            
+            let scoreText = document.createElement("span");
+            scoreText.style.fontWeight = "bold";
+            scoreText.textContent = (s.score / 100).toFixed(2) + "%";
+            
+            let timeText = document.createElement("span");
+            timeText.style.fontSize = "12px";
+            timeText.style.color = "#666";
+            timeText.textContent = formatTime(s.timeMs);
+            
+            right.appendChild(scoreText);
+            right.appendChild(timeText);
+            
+            row.appendChild(left);
+            row.appendChild(right);
+            
+            globalLeaderboardList.appendChild(row);
+        });
+    }
+    
+    globalLeaderboardModal.classList.remove("hidden");
+}
+
+if (globalLeaderboardMenuBtn) {
+    globalLeaderboardMenuBtn.addEventListener("click", showGlobalLeaderboard);
+}
+if (globalLeaderboardEndBtn) {
+    globalLeaderboardEndBtn.addEventListener("click", showGlobalLeaderboard);
+}
+if (closeGlobalLeaderboardBtn) {
+    closeGlobalLeaderboardBtn.addEventListener("click", () => {
+        globalLeaderboardModal.classList.add("hidden");
+    });
+}
 
 // --- Menu Logic ---
 function updateInputWidth() {
@@ -578,6 +719,12 @@ function startGame() {
     grid = Array(GRID_SIZE).fill().map(() => Array(GRID_SIZE).fill(0));
     entities = [];
     idCounter = 1;
+    
+    gameActiveTimeMs = 0;
+    if (gameTimerHud) {
+        gameTimerHud.textContent = formatTime(gameActiveTimeMs);
+        gameTimerHud.classList.remove("hidden");
+    }
 
     // Create player
     let playerSpawn = {x: Math.floor(Math.random() * 40) + 5, y: Math.floor(Math.random() * 40) + 5};
@@ -1295,6 +1442,12 @@ function die(playerWon = false) {
     isWon = true; // Always trigger the game over celebration logic!
     window.globalPlayerWon = playerWon;
     
+    if (gameTimerHud) {
+        gameTimerHud.classList.add("hidden");
+    }
+    
+    saveToGlobalLeaderboard(myPlayer, playerWon);
+    
     updateTerritoryCount(); // Final cleanup for the leaderboard UI
     
     // Build legacy detailed leaderboard for the Game Over screen
@@ -1650,6 +1803,11 @@ function gameLoop(time) {
     // Fast forward time by 2x when the real player is dead
     if (myPlayer && myPlayer.isDead) {
         dt *= 2.0;
+    } else if (!isPaused) {
+        gameActiveTimeMs += dt;
+        if (gameTimerHud) {
+            gameTimerHud.textContent = formatTime(gameActiveTimeMs);
+        }
     }
     
     if (isPaused) {
