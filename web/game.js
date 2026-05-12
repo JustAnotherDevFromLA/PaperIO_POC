@@ -555,10 +555,21 @@ let actx = null;
 function initAudio() {
     if (!actx) {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
-        if (AudioCtx) actx = new AudioCtx();
+        if (AudioCtx) {
+            actx = new AudioCtx();
+            // Play a silent sound immediately on creation to fully unlock iOS audio engine
+            const osc = actx.createOscillator();
+            const gain = actx.createGain();
+            gain.gain.value = 0;
+            osc.connect(gain);
+            gain.connect(actx.destination);
+            osc.start(0);
+            osc.stop(0.01);
+        }
     }
     if (actx && actx.state !== 'running') {
-        actx.resume();
+        let p = actx.resume();
+        if (p !== undefined) p.catch(() => {});
     }
 }
 
@@ -569,7 +580,10 @@ document.addEventListener('keydown', initAudio, { passive: true });
 
 function playHitSound() {
     if (!actx || !isSoundEnabled) return;
-    if (actx.state !== 'running') actx.resume();
+    if (actx.state !== 'running') {
+        let p = actx.resume();
+        if (p !== undefined) p.catch(() => {});
+    }
 
     const time = actx.currentTime;
 
@@ -617,7 +631,10 @@ function playHitSound() {
 }
 function playTurnSound() {
     if (!actx || !isSoundEnabled) return;
-    if (actx.state !== 'running') actx.resume();
+    if (actx.state !== 'running') {
+        let p = actx.resume();
+        if (p !== undefined) p.catch(() => {});
+    }
 
     const osc = actx.createOscillator();
     const gainNode = actx.createGain();
@@ -639,7 +656,10 @@ function playTurnSound() {
 }
 function playFireworkSound() {
     if (!actx || !isSoundEnabled) return;
-    if (actx.state !== 'running') actx.resume();
+    if (actx.state !== 'running') {
+        let p = actx.resume();
+        if (p !== undefined) p.catch(() => {});
+    }
     
     // 500ms to 1000ms randomized buffer delay
     const delay = 0.5 + (Math.random() * 0.5);
