@@ -553,47 +553,54 @@ function quitToMenu() {
 quitToMenuBtn.addEventListener("click", quitToMenu);
 
 let actx = null;
-function initAudio() {
-    if (actx && (actx.state === 'closed' || actx.state === 'interrupted')) {
-        try { actx.close(); } catch(e) {}
+function initAudio(isUserInteraction = false) {
+    if (actx && actx.state === 'closed') {
         actx = null;
     }
     
     if (!actx) {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
-            actx = new AudioCtx();
-            // Play a silent sound immediately on creation to fully unlock iOS audio engine
-            const osc = actx.createOscillator();
-            const gain = actx.createGain();
-            gain.gain.value = 0;
-            osc.connect(gain);
-            gain.connect(actx.destination);
-            osc.start(0);
-            osc.stop(0.01);
+            try {
+                actx = new AudioCtx();
+                // Play a silent sound immediately on creation to fully unlock iOS audio engine
+                const osc = actx.createOscillator();
+                const gain = actx.createGain();
+                gain.gain.value = 0;
+                osc.connect(gain);
+                gain.connect(actx.destination);
+                osc.start(0);
+                osc.stop(0.01);
+            } catch (e) {
+                console.error("Audio engine failed to initialize:", e);
+                return;
+            }
         }
     }
-    if (actx && actx.state !== 'running') {
+    
+    // ONLY attempt to resume on explicit user interactions.
+    // Spamming resume() from game loops can cause iOS WebKit to permanently lock or crash the audio engine!
+    if (isUserInteraction && actx && actx.state !== 'running') {
         let p = actx.resume();
         if (p !== undefined) p.catch(() => {});
     }
 }
 
 // Ensure audio context stays active by resuming on any interaction
-document.addEventListener('touchstart', initAudio, { passive: true });
-document.addEventListener('click', initAudio, { passive: true });
-document.addEventListener('keydown', initAudio, { passive: true });
+document.addEventListener('touchstart', () => initAudio(true), { passive: true });
+document.addEventListener('click', () => initAudio(true), { passive: true });
+document.addEventListener('keydown', () => initAudio(true), { passive: true });
 
 // Recover audio when switching tabs or waking up the device
 document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-        initAudio();
+        initAudio(true);
     }
 });
 
 function playHitSound() {
-    initAudio();
-    if (!actx || !isSoundEnabled) return;
+    initAudio(false);
+    if (!actx || !isSoundEnabled || actx.state !== 'running') return;
 
     const time = actx.currentTime;
 
@@ -640,8 +647,8 @@ function playHitSound() {
     osc.stop(time + 0.1);
 }
 function playTurnSound() {
-    initAudio();
-    if (!actx || !isSoundEnabled) return;
+    initAudio(false);
+    if (!actx || !isSoundEnabled || actx.state !== 'running') return;
 
     const osc = actx.createOscillator();
     const gainNode = actx.createGain();
@@ -662,8 +669,8 @@ function playTurnSound() {
     osc.stop(actx.currentTime + 0.05);
 }
 function playFireworkSound() {
-    initAudio();
-    if (!actx || !isSoundEnabled) return;
+    initAudio(false);
+    if (!actx || !isSoundEnabled || actx.state !== 'running') return;
     
     // 500ms to 1000ms randomized buffer delay
     const delay = 0.5 + (Math.random() * 0.5);
