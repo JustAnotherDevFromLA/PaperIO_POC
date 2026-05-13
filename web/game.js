@@ -2124,10 +2124,28 @@ function drawGame(progress) {
         ctx.lineWidth = 1;
         ctx.strokeRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         
+        if (e.id === kingId) {
+            ctx.fillStyle = "#FFD700";
+            ctx.beginPath();
+            let cx = e.visualPos.x + CELL_SIZE / 2;
+            let cy = e.visualPos.y - 2;
+            ctx.moveTo(cx - 7, cy);
+            ctx.lineTo(cx + 7, cy);
+            ctx.lineTo(cx + 9, cy - 10);
+            ctx.lineTo(cx + 3.5, cy - 4);
+            ctx.lineTo(cx, cy - 13);
+            ctx.lineTo(cx - 3.5, cy - 4);
+            ctx.lineTo(cx - 9, cy - 10);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.strokeStyle = "rgba(0,0,0,0.4)";
+            ctx.lineWidth = 1;
+            ctx.stroke();
+        }
+        
         ctx.restore();
     });
-
-    // Normal play crown rendering has been moved to the DOM overlay to prevent clipping at the borders.
 
     if (myPlayer) {
         let boardWrapper = document.getElementById('board-wrapper');
