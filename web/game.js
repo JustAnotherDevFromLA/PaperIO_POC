@@ -217,12 +217,25 @@ if (confirmYesBtn) {
         startGame();
     });
 }
+let cachedViewportWidth = window.innerWidth;
+let cachedViewportHeight = window.innerHeight;
+let cachedBoardWidth = window.innerWidth;
+let cachedBoardHeight = window.innerHeight;
+
 function resizeFxCanvas() {
     let dpr = Math.max(window.devicePixelRatio || 1, 2);
-    fxCanvas.width = window.innerWidth * dpr;
-    fxCanvas.height = window.innerHeight * dpr;
+    cachedViewportWidth = window.innerWidth;
+    cachedViewportHeight = window.innerHeight;
+    fxCanvas.width = cachedViewportWidth * dpr;
+    fxCanvas.height = cachedViewportHeight * dpr;
     fxCtx.setTransform(1, 0, 0, 1, 0, 0);
     fxCtx.scale(dpr, dpr);
+    
+    let boardWrapper = document.getElementById('board-wrapper');
+    if (boardWrapper) {
+        cachedBoardWidth = boardWrapper.clientWidth;
+        cachedBoardHeight = boardWrapper.clientHeight;
+    }
 }
 window.addEventListener("resize", resizeFxCanvas);
 resizeFxCanvas();
@@ -1935,8 +1948,8 @@ function drawGame(progress) {
     ctx.globalAlpha = 0.5;
     
     // Viewport bounds calculation for path/head culling
-    let canvasRectWidth = window.innerWidth;
-    let canvasRectHeight = window.innerHeight;
+    let canvasRectWidth = cachedViewportWidth;
+    let canvasRectHeight = cachedViewportHeight;
     let scaleX = canvasRectWidth / 800;
     let scaleY = canvasRectHeight / 800;
     let pxCam = (myPlayer.visualPos.x + CELL_SIZE / 2);
@@ -2113,13 +2126,16 @@ function drawGame(progress) {
             let px = (myPlayer.visualPos.x + CELL_SIZE / 2) * scaleX;
             let py = (myPlayer.visualPos.y + CELL_SIZE / 2) * scaleY;
             
-            let viewportWidth = window.innerWidth;
-            let viewportHeight = window.innerHeight;
+            let viewportWidth = cachedViewportWidth;
+            let viewportHeight = cachedViewportHeight;
             
             let offsetX = viewportWidth / 2 - px;
             let offsetY = viewportHeight / 2 - py;
             
-            boardWrapper.style.transformOrigin = "0 0";
+            if (!boardWrapper.dataset.transformOriginSet) {
+                boardWrapper.style.transformOrigin = "0 0";
+                boardWrapper.dataset.transformOriginSet = "true";
+            }
             
             let scaleFactor = 1.0;
             
@@ -2127,8 +2143,8 @@ function drawGame(progress) {
                 // Smoothly clear the camera offset so it doesn't snap if they died while panning
                 deadCameraOffset = {x: 0, y: 0};
                 
-                let bw = boardWrapper.clientWidth;
-                let bh = boardWrapper.clientHeight;
+                let bw = cachedBoardWidth;
+                let bh = cachedBoardHeight;
                 
                 let fitScaleX = viewportWidth / bw;
                 let fitScaleY = viewportHeight / bh;
@@ -2145,8 +2161,8 @@ function drawGame(progress) {
                 // During normal gameplay, the camera should NOT clamp, keeping the player perfectly centered
                 // so they can see the maximum possible distance ahead even when near the map border.
                 if (!isPlaying && isWon) {
-                    let bw = boardWrapper.clientWidth;
-                    let bh = boardWrapper.clientHeight;
+                    let bw = cachedBoardWidth;
+                    let bh = cachedBoardHeight;
                     
                     let maxOffsetX = 50;
                     let minOffsetX = viewportWidth - bw - 50;
@@ -2205,7 +2221,11 @@ function drawGame(progress) {
                 }
             }
 
-            boardWrapper.style.transform = `translate3d(${currentCamOffsetX}px, ${currentCamOffsetY}px, 0) scale(${currentCamScale})`;
+            let newTransform = `translate3d(${currentCamOffsetX}px, ${currentCamOffsetY}px, 0) scale(${currentCamScale})`;
+            if (boardWrapper.dataset.lastTransform !== newTransform) {
+                boardWrapper.style.transform = newTransform;
+                boardWrapper.dataset.lastTransform = newTransform;
+            }
 
             let winCrown = document.getElementById("win-crown-overlay");
             if (winCrown) {
@@ -2232,8 +2252,8 @@ function drawGame(progress) {
                     }
 
                     // Use pure mathematical projection relative to board wrapper to eliminate bounding rect jitter
-                    let bwRaw = boardWrapper.clientWidth;
-                    let bhRaw = boardWrapper.clientHeight;
+                    let bwRaw = cachedBoardWidth;
+                    let bhRaw = cachedBoardHeight;
                     let rawScaleX = (bwRaw - 16) / 800;
                     let rawScaleY = (bhRaw - 16) / 800;
 
