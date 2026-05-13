@@ -250,14 +250,9 @@ async function loadGlobalLeaderboard() {
         console.error("Failed to load global leaderboard", e);
     }
     
-    // Clear legacy v1.2 local leaderboard to prevent lagging issues
+    // Clear legacy local leaderboards
     localStorage.removeItem("papelio_leaderboard");
-
-    // Fallback to local storage if API fails or is offline
-    let data = localStorage.getItem("papelio_global_leaderboard");
-    if (data) {
-        try { return JSON.parse(data); } catch(e) { return []; }
-    }
+    localStorage.removeItem("papelio_global_leaderboard");
     return [];
 }
 
@@ -284,15 +279,6 @@ async function saveToGlobalLeaderboard(player, isWin) {
         if (!response.ok) throw new Error("API returned " + response.status);
     } catch(e) {
         console.error("Failed to save to global leaderboard", e);
-        // Fallback to local storage
-        let scores = await loadGlobalLeaderboard();
-        scores.push(payload);
-        scores.sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-            return a.timeMs - b.timeMs;
-        });
-        if (scores.length > 100) scores = scores.slice(0, 100);
-        localStorage.setItem("papelio_global_leaderboard", JSON.stringify(scores));
     }
 }
 
