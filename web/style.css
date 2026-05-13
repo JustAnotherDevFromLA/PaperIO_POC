@@ -419,24 +419,24 @@ button:active {
     cursor: none !important;
 }/* Legacy Leaderboard Classes for Game Over Screen */
 .leaderboard-entry {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 20px 1fr 75px;
     align-items: center;
+    gap: 8px;
     font-size: 13px;
     font-weight: bold;
     padding: 4px 0;
 }
 
 .leaderboard-rank {
-    width: 20px;
     color: #8E8E93;
     font-size: 11px;
 }
 
 .leaderboard-name {
-    flex-grow: 1;
-    margin: 0 10px;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .leaderboard-score {
