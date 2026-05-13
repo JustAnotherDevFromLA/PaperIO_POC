@@ -250,6 +250,9 @@ async function loadGlobalLeaderboard() {
         console.error("Failed to load global leaderboard", e);
     }
     
+    // Clear legacy v1.2 local leaderboard to prevent lagging issues
+    localStorage.removeItem("papelio_leaderboard");
+
     // Fallback to local storage if API fails or is offline
     let data = localStorage.getItem("papelio_global_leaderboard");
     if (data) {
@@ -952,18 +955,24 @@ function updateLeaderboardUI() {
         
         square.style.backgroundColor = p.color;
 
+        let newHTML = "";
         if (p.isDead) {
             square.classList.add("dead");
             square.id = `timer-${p.id}`;
             if (isPlaying) {
-                square.innerHTML = `${Math.ceil(p.respawnTimer)}`;
-            } else {
-                square.innerHTML = "";
+                newHTML = `${Math.ceil(p.respawnTimer)}`;
             }
-        } else if (index === 0) {
-            square.innerHTML = `<svg width="14" height="12" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); transform: translateY(1px);"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
         } else {
-            square.innerHTML = "";
+            square.classList.remove("dead");
+            square.removeAttribute("id");
+            if (index === 0) {
+                newHTML = `<svg width="14" height="12" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); transform: translateY(1px);"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
+            }
+        }
+
+        if (square.dataset.cachedHTML !== newHTML) {
+            square.innerHTML = newHTML;
+            square.dataset.cachedHTML = newHTML;
         }
     });
 }
