@@ -302,58 +302,43 @@ async function showGlobalLeaderboard() {
         scores.forEach((s, i) => {
             let row = document.createElement("div");
             row.style.display = "flex";
-            row.style.justifyContent = "space-between";
             row.style.alignItems = "center";
             row.style.padding = "8px 12px";
             row.style.background = i % 2 === 0 ? "rgba(0,0,0,0.03)" : "rgba(0,0,0,0.06)";
             row.style.borderRadius = "8px";
-            
-            let left = document.createElement("div");
-            left.style.display = "flex";
-            left.style.alignItems = "center";
-            left.style.gap = "10px";
+            row.style.fontSize = "13px";
+            row.style.gap = "8px";
             
             let rank = document.createElement("span");
             rank.style.fontWeight = "bold";
             rank.style.color = i === 0 ? "#FFD700" : i === 1 ? "#C0C0C0" : i === 2 ? "#CD7F32" : "#666";
-            rank.style.minWidth = "24px";
+            rank.style.minWidth = "20px";
             rank.textContent = `#${i+1}`;
-            
-            let nameCont = document.createElement("div");
-            nameCont.style.display = "flex";
-            nameCont.style.flexDirection = "column";
             
             let nameText = document.createElement("span");
             nameText.style.fontWeight = "bold";
             nameText.style.color = s.color;
+            nameText.style.flexGrow = "1";
+            nameText.style.overflow = "hidden";
+            nameText.style.textOverflow = "ellipsis";
+            nameText.style.whiteSpace = "nowrap";
             nameText.textContent = s.name;
             
-            let statsText = document.createElement("span");
-            statsText.style.fontSize = "11px";
-            statsText.style.color = "#888";
-            statsText.textContent = `⚔️ ${s.kills} | 💀 ${s.deaths}`;
-            
-            nameCont.appendChild(nameText);
-            nameCont.appendChild(statsText);
-            
-            left.appendChild(rank);
-            left.appendChild(nameCont);
-            
-            let right = document.createElement("div");
-            right.style.display = "flex";
-            right.style.flexDirection = "column";
-            right.style.alignItems = "flex-end";
-            
             let timeText = document.createElement("span");
-            timeText.style.fontWeight = "bold"; // Make it bold instead since it's the primary stat on the right now
-            timeText.style.fontSize = "14px";
-            timeText.style.color = "#333";
+            timeText.style.color = "#555";
+            timeText.style.fontFamily = "monospace";
+            timeText.style.fontSize = "12px";
             timeText.textContent = formatTime(s.timeMs);
             
-            right.appendChild(timeText);
+            let statsText = document.createElement("span");
+            statsText.style.color = "#888";
+            statsText.style.fontSize = "12px";
+            statsText.textContent = `⚔️ ${s.kills} 💀 ${s.deaths}`;
             
-            row.appendChild(left);
-            row.appendChild(right);
+            row.appendChild(rank);
+            row.appendChild(nameText);
+            row.appendChild(timeText);
+            row.appendChild(statsText);
             
             globalLeaderboardList.appendChild(row);
         });
