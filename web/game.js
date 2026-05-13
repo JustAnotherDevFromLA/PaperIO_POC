@@ -344,16 +344,12 @@ async function showGlobalLeaderboard() {
             right.style.flexDirection = "column";
             right.style.alignItems = "flex-end";
             
-            let scoreText = document.createElement("span");
-            scoreText.style.fontWeight = "bold";
-            scoreText.textContent = (s.score / 100).toFixed(2) + "%";
-            
             let timeText = document.createElement("span");
-            timeText.style.fontSize = "12px";
-            timeText.style.color = "#666";
+            timeText.style.fontWeight = "bold"; // Make it bold instead since it's the primary stat on the right now
+            timeText.style.fontSize = "14px";
+            timeText.style.color = "#333";
             timeText.textContent = formatTime(s.timeMs);
             
-            right.appendChild(scoreText);
             right.appendChild(timeText);
             
             row.appendChild(left);
@@ -1521,9 +1517,27 @@ function die(playerWon = false) {
         color: e.color,
         percent: (e.territoryCount / TOTAL_CELLS) * 100,
         killCount: e.killCount || 0,
+        deathCount: e.deathCount || (e.isDead ? 1 : 0),
         isReal: e.isReal
     }));
-    players.sort((a, b) => b.percent - a.percent);
+
+    // Find the actual winner based on who has the most area right now, 
+    // unless the player actually won the game.
+    let winnerId = playerWon ? myPlayer.id : kingId;
+
+    players.sort((a, b) => {
+        let aIsWinner = (a.id === winnerId);
+        let bIsWinner = (b.id === winnerId);
+
+        if (aIsWinner && !bIsWinner) return -1;
+        if (!aIsWinner && bIsWinner) return 1;
+
+        if (b.killCount !== a.killCount) {
+            return b.killCount - a.killCount;
+        }
+        
+        return a.deathCount - b.deathCount;
+    });
 
     gameOverLeaderboard.innerHTML = "";
     gameOverLeaderboard.style.width = "100%";
@@ -1574,7 +1588,7 @@ function die(playerWon = false) {
 
         const score = document.createElement("span");
         score.className = "leaderboard-score";
-        score.innerHTML = `⚔️ ${p.killCount}`;
+        score.innerHTML = `⚔️ ${p.killCount} <span style="margin: 0 4px; color: #ccc;">|</span> 💀 ${p.deathCount}`;
 
         entry.appendChild(rank);
         entry.appendChild(nameContainer);
