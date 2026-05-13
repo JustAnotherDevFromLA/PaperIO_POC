@@ -1803,16 +1803,12 @@ function drawParticles(ctx) {
         if (alpha < 0) alpha = 0;
         
         if (p.stuck) {
-            // Simulated neon glow for vibrant splatter (two overlapping ellipses)
+            // Fast simulated drip (two overlapping rectangles)
             ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha * 0.3})`;
-            ctx.beginPath();
-            ctx.ellipse(p.x, p.y, p.size, p.size * 2, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(p.x - p.size, p.y - p.size * 2, p.size * 2, p.size * 4);
             
             ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
-            ctx.beginPath();
-            ctx.ellipse(p.x, p.y, p.size / 2, p.size, 0, 0, Math.PI * 2);
-            ctx.fill();
+            ctx.fillRect(p.x - p.size / 2, p.y - p.size, p.size, p.size * 2);
         } else {
             // Fast rect rendering for moving particles
             ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
@@ -1864,7 +1860,10 @@ function gameLoop(time) {
     if (!isPaused) {
         gameActiveTimeMs += dt;
         if (gameTimerHud) {
-            gameTimerHud.textContent = formatTime(gameActiveTimeMs);
+            let newFormattedTime = formatTime(gameActiveTimeMs);
+            if (gameTimerHud.textContent !== newFormattedTime) {
+                gameTimerHud.textContent = newFormattedTime;
+            }
         }
     }
     
