@@ -553,7 +553,10 @@ function quitToMenu() {
 quitToMenuBtn.addEventListener("click", quitToMenu);
 
 let actx = null;
+let actxRunning = false;
 function initAudio(isUserInteraction = false) {
+    if (actxRunning) return; // Fast-path to prevent expensive WebKit IPC calls on every keydown
+
     if (actx && actx.state === 'closed') {
         actx = null;
     }
@@ -563,6 +566,12 @@ function initAudio(isUserInteraction = false) {
         if (AudioCtx) {
             try {
                 actx = new AudioCtx();
+                
+                // Keep the fast-path state in sync
+                actx.onstatechange = () => {
+                    actxRunning = (actx.state === 'running');
+                };
+
                 // Play a silent sound immediately on creation to fully unlock iOS audio engine
                 const osc = actx.createOscillator();
                 const gain = actx.createGain();
@@ -2134,28 +2143,20 @@ function drawGame(progress) {
         ctx.lineWidth = 1;
         ctx.strokeRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
         
-        if (e.id === kingId) {
-            ctx.fillStyle = "#FFD700";
-            ctx.beginPath();
-            let cx = e.visualPos.x + CELL_SIZE / 2;
-            let cy = e.visualPos.y - 2;
-            ctx.moveTo(cx - 7, cy);
-            ctx.lineTo(cx + 7, cy);
-            ctx.lineTo(cx + 9, cy - 10);
-            ctx.lineTo(cx + 3.5, cy - 4);
-            ctx.lineTo(cx, cy - 13);
-            ctx.lineTo(cx - 3.5, cy - 4);
-            ctx.lineTo(cx - 9, cy - 10);
-            ctx.closePath();
-            ctx.fill();
-            
-            ctx.strokeStyle = "rgba(0,0,0,0.4)";
-            ctx.lineWidth = 1;
-            ctx.stroke();
-        }
-        
         ctx.restore();
     });
+
+    let kingCrown = document.getElementById("king-crown");
+    if (kingCrown) {
+        let kingEnt = entities.find(e => e.id === kingId);
+        if (kingEnt && !kingEnt.isDead && isPlaying) {
+            kingCrown.style.display = "block";
+            kingCrown.style.left = (kingEnt.visualPos.x + CELL_SIZE / 2) + "px";
+            kingCrown.style.top = kingEnt.visualPos.y + "px";
+        } else {
+            kingCrown.style.display = "none";
+        }
+    }
 
     if (myPlayer) {
         let boardWrapper = document.getElementById('board-wrapper');
