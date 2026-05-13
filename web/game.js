@@ -321,6 +321,7 @@ async function showGlobalLeaderboard() {
             nameText.style.overflow = "hidden";
             nameText.style.textOverflow = "ellipsis";
             nameText.style.whiteSpace = "nowrap";
+            nameText.style.minWidth = "0"; // Required for CSS grid items to truncate
             nameText.textContent = s.name;
             
             let timeText = document.createElement("span");
@@ -1549,6 +1550,7 @@ function die(playerWon = false) {
         nameContainer.style.color = "black";
         nameContainer.style.display = "flex";
         nameContainer.style.alignItems = "center";
+        nameContainer.style.minWidth = "0"; // Required for flex/grid children to truncate properly
 
         const colorSquare = document.createElement("div");
         colorSquare.style.width = "12px";
@@ -1568,6 +1570,9 @@ function die(playerWon = false) {
         }
 
         const nameText = document.createElement("span");
+        nameText.style.overflow = "hidden";
+        nameText.style.textOverflow = "ellipsis";
+        nameText.style.whiteSpace = "nowrap";
         nameText.textContent = p.name;
 
         nameContainer.appendChild(colorSquare);
