@@ -1,9 +1,9 @@
 export default async function handler(req, res) {
-    const KV_REST_API_URL = process.env.KV_REST_API_URL;
-    const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN;
+    const KV_REST_API_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
+    const KV_REST_API_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
 
     if (!KV_REST_API_URL || !KV_REST_API_TOKEN) {
-        return res.status(500).json({ error: 'KV database not configured. Please link Vercel KV in the dashboard.' });
+        return res.status(500).json({ error: 'KV database not configured. Please link Upstash Redis in the dashboard.' });
     }
 
     const key = 'papelio_global_leaderboard';
