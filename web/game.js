@@ -645,6 +645,17 @@ function playHitSound() {
     
     noise.stop(time + 0.1);
     osc.stop(time + 0.1);
+
+    // Garbage collect nodes after they finish playing
+    osc.onended = () => {
+        try {
+            noise.disconnect();
+            noiseFilter.disconnect();
+            noiseGain.disconnect();
+            osc.disconnect();
+            oscGain.disconnect();
+        } catch (e) {}
+    };
 }
 function playTurnSound() {
     initAudio(false);
@@ -667,6 +678,13 @@ function playTurnSound() {
 
     osc.start();
     osc.stop(actx.currentTime + 0.05);
+
+    osc.onended = () => {
+        try {
+            osc.disconnect();
+            gainNode.disconnect();
+        } catch(e) {}
+    };
 }
 function playFireworkSound() {
     initAudio(false);
@@ -716,6 +734,16 @@ function playFireworkSound() {
     oscGain.connect(actx.destination);
     osc.start(burstTime);
     osc.stop(burstTime + 0.5);
+
+    osc.onended = () => {
+        try {
+            noise.disconnect();
+            filter.disconnect();
+            noiseGain.disconnect();
+            osc.disconnect();
+            oscGain.disconnect();
+        } catch(e) {}
+    };
 }
 
 // --- Core Game Logic ---
