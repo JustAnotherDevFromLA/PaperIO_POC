@@ -1,5 +1,28 @@
 # Papel.io Patch Notes
 
+## v1.4 - The Global Competition & Polish Update
+*May 12, 2026*
+
+This patch transforms Papel.io from a purely local experience into a truly global competition, introducing a backend-powered leaderboard, rigorous in-game session timing, and bulletproof fixes for mobile browser audio policies.
+
+### 🌍 Global Leaderboard API
+* **True Global Rankings:** Shifted from `localStorage` to a serverless Vercel API powered by an Upstash Redis database. Players worldwide now compete on the exact same leaderboard.
+* **Smart Sorting:** The leaderboard mathematically ranks players by identifying the absolute **Highest Score** (territory controlled) followed strictly by the **Lowest Time** (fastest match completion).
+* **Offline Resilience:** The game engine gracefully falls back to local storage caching if the global API or your internet connection drops, ensuring your high scores are never lost.
+* **UI Integration:** Added slick new Leaderboard toggle buttons to both the Main Menu and Game Over screens, displaying the Top 100 global runs.
+
+### ⏱️ Synchronized HUD Timer
+* **Real-time Session Tracking:** A dynamic timer has been injected directly into the HUD, giving players a live view of their match duration.
+* **Cinematic Engine Sync:** To preserve true "game engine time," the timer now purposefully continues to tick while you are dead and waiting to respawn. However, it dynamically fast-forwards at **2x speed** to perfectly mirror the internal engine's accelerated respawn sequence.
+
+### 🎵 iOS Web Audio Unlocker
+* **Bulletproof Audio Context:** Fixed a pervasive issue where modern mobile browsers (especially iOS WebKit) would aggressively suspend the game's sound engine. 
+* **Zero-Latency Audio Engine:** The exact millisecond you tap the screen, the game now generates an invisible 10ms transient oscillator tone to forcibly "unlock" Apple's media restrictions permanently.
+* **Graceful Suspensions:** Hardened all sound playback functions (`playHitSound`, `playTurnSound`) with aggressive `.resume()` checks and Promise catchers to prevent game-crashing DOM Exceptions when audio thread drift occurs.
+
+### ⚙️ Bug Fixes
+* **Menu Navigation:** Fixed a regression where clicking the "Menu" button from the Game Over screen would fail to wipe the cinematic crown overlays and unmount the DOM properly.
+
 ## v1.3 - The Rendering & Stability Update
 *May 11, 2026*
 
