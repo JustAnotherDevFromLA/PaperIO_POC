@@ -598,7 +598,12 @@ document.addEventListener('visibilitychange', () => {
     }
 });
 
+let lastHitSoundTime = 0;
 function playHitSound() {
+    let now = Date.now();
+    if (now - lastHitSoundTime < 50) return; // Max 20 times per second
+    lastHitSoundTime = now;
+
     initAudio(false);
     if (!actx || !isSoundEnabled || actx.state !== 'running') return;
 
@@ -657,7 +662,12 @@ function playHitSound() {
         } catch (e) {}
     };
 }
+let lastTurnSoundTime = 0;
 function playTurnSound() {
+    let now = Date.now();
+    if (now - lastTurnSoundTime < 30) return; // limit to 1 per 30ms (~33Hz max)
+    lastTurnSoundTime = now;
+
     initAudio(false);
     if (!actx || !isSoundEnabled || actx.state !== 'running') return;
 
