@@ -318,6 +318,7 @@ async function showGlobalLeaderboard() {
             let nameText = document.createElement("span");
             nameText.style.fontWeight = "bold";
             nameText.style.color = s.color;
+            nameText.style.display = "block";
             nameText.style.overflow = "hidden";
             nameText.style.textOverflow = "ellipsis";
             nameText.style.whiteSpace = "nowrap";
@@ -1570,9 +1571,11 @@ function die(playerWon = false) {
         }
 
         const nameText = document.createElement("span");
+        nameText.style.display = "block";
         nameText.style.overflow = "hidden";
         nameText.style.textOverflow = "ellipsis";
         nameText.style.whiteSpace = "nowrap";
+        nameText.style.minWidth = "0"; // Required for flex items to truncate
         nameText.textContent = p.name;
 
         nameContainer.appendChild(colorSquare);
