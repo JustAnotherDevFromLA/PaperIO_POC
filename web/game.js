@@ -228,25 +228,29 @@ window.addEventListener("resize", resizeFxCanvas);
 resizeFxCanvas();
 
 // --- Global Leaderboard Logic ---
-function loadGlobalLeaderboard() {
+async function loadGlobalLeaderboard() {
+    try {
+        const response = await fetch('/api/leaderboard');
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch(e) {
+        console.error("Failed to load global leaderboard", e);
+    }
+    
+    // Fallback to local storage if API fails or is offline
     let data = localStorage.getItem("papelio_global_leaderboard");
     if (data) {
-        try {
-            return JSON.parse(data);
-        } catch(e) {
-            return [];
-        }
+        try { return JSON.parse(data); } catch(e) { return []; }
     }
     return [];
 }
 
-function saveToGlobalLeaderboard(player, isWin) {
+async function saveToGlobalLeaderboard(player, isWin) {
     if (!player || !player.isReal) return;
     
-    let scores = loadGlobalLeaderboard();
     let score = Math.floor((player.territoryCount / TOTAL_CELLS) * 10000); // 100.00%
-    
-    scores.push({
+    let payload = {
         name: player.name,
         color: player.color,
         score: score,
@@ -254,18 +258,26 @@ function saveToGlobalLeaderboard(player, isWin) {
         deaths: player.deathCount || (isWin ? 0 : 1),
         timeMs: gameActiveTimeMs,
         date: new Date().getTime()
-    });
+    };
     
-    // Sort by Highest Score DESC, then Lowest Time ASC
-    scores.sort((a, b) => {
-        if (b.score !== a.score) return b.score - a.score;
-        return a.timeMs - b.timeMs;
-    });
-    
-    // Keep top 100
-    if (scores.length > 100) scores = scores.slice(0, 100);
-    
-    localStorage.setItem("papelio_global_leaderboard", JSON.stringify(scores));
+    try {
+        await fetch('/api/leaderboard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch(e) {
+        console.error("Failed to save to global leaderboard", e);
+        // Fallback to local storage
+        let scores = await loadGlobalLeaderboard();
+        scores.push(payload);
+        scores.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.timeMs - b.timeMs;
+        });
+        if (scores.length > 100) scores = scores.slice(0, 100);
+        localStorage.setItem("papelio_global_leaderboard", JSON.stringify(scores));
+    }
 }
 
 function formatTime(ms) {
@@ -275,8 +287,11 @@ function formatTime(ms) {
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 }
 
-function showGlobalLeaderboard() {
-    let scores = loadGlobalLeaderboard();
+async function showGlobalLeaderboard() {
+    globalLeaderboardList.innerHTML = "<div style='text-align: center; color: #888; padding: 20px 0;'>Loading scores...</div>";
+    globalLeaderboardModal.classList.remove("hidden");
+    
+    let scores = await loadGlobalLeaderboard();
     globalLeaderboardList.innerHTML = "";
     
     if (scores.length === 0) {
