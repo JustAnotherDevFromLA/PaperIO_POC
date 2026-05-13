@@ -557,7 +557,8 @@ let actxRunning = false;
 function initAudio(isUserInteraction = false) {
     if (actxRunning) return; // Fast-path to prevent expensive WebKit IPC calls on every keydown
 
-    if (actx && actx.state === 'closed') {
+    if (actx && (actx.state === 'closed' || actx.state === 'interrupted')) {
+        try { actx.close(); } catch(e) {}
         actx = null;
     }
     
@@ -588,10 +589,16 @@ function initAudio(isUserInteraction = false) {
     }
     
     // ONLY attempt to resume on explicit user interactions.
-    // Spamming resume() from game loops can cause iOS WebKit to permanently lock or crash the audio engine!
     if (isUserInteraction && actx && actx.state !== 'running') {
         let p = actx.resume();
-        if (p !== undefined) p.catch(() => {});
+        if (p !== undefined) {
+            p.catch(() => {
+                // If resume fails, the context is dead. Recreate it on the next user interaction.
+                try { actx.close(); } catch(e) {}
+                actx = null;
+                actxRunning = false;
+            });
+        }
     }
 }
 
