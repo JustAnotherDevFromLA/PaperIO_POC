@@ -1749,7 +1749,7 @@ function spawnFirework() {
 
     // Introduce randomized scaling for fireworks of various sizes
     const scale = Math.random() * 1.5 + 0.5; // 0.5x to 2.0x overall scale multiplier
-    const particleCount = Math.floor(120 * scale); // varies from 60 to 240 particles
+    const particleCount = Math.floor(30 * scale); // heavily reduced to fix buffering: 15 to 60 particles
 
     let colors = [
         { r: 255, g: 59, b: 48 }, // Red
@@ -1773,7 +1773,7 @@ function spawnFirework() {
             b: color.b,
             life: Math.random() * 1.0 + 0.5,
             maxLife: 1.5,
-            size: (Math.random() * 4 + 1) * scale, // physical particle size varies with scale
+            size: (Math.random() * 5 + 2) * scale, // slightly larger to compensate for fewer particles
             stuck: false,
             splatTime: Math.random() * 1.5 // Randomized 'z-depth' hit time
         });
@@ -1825,16 +1825,22 @@ function drawParticles(ctx) {
         if (alpha < 0) alpha = 0;
         
         if (p.stuck) {
-            // Fast simulated drip (two overlapping rectangles)
+            // Smooth simulated drip
             ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha * 0.3})`;
-            ctx.fillRect(p.x - p.size, p.y - p.size * 2, p.size * 2, p.size * 4);
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y, p.size, p.size * 2, 0, 0, Math.PI * 2);
+            ctx.fill();
             
             ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
-            ctx.fillRect(p.x - p.size / 2, p.y - p.size, p.size, p.size * 2);
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y + p.size/2, p.size / 2, p.size, 0, 0, Math.PI * 2);
+            ctx.fill();
         } else {
-            // Fast rect rendering for moving particles
+            // Smooth rendering for moving particles
             ctx.fillStyle = `rgba(${p.r}, ${p.g}, ${p.b}, ${alpha})`;
-            ctx.fillRect(p.x - p.size, p.y - p.size, p.size * 2, p.size * 2);
+            ctx.beginPath();
+            ctx.ellipse(p.x, p.y, p.size, p.size, 0, 0, Math.PI * 2);
+            ctx.fill();
         }
     });
 }
@@ -1855,7 +1861,11 @@ function winLoop(timestamp) {
 
     updateParticles(dt);
 
-    fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+    fxCtx.save();
+    fxCtx.setTransform(1, 0, 0, 1, 0, 0);
+    fxCtx.clearRect(0, 0, fxCanvas.width, fxCanvas.height);
+    fxCtx.restore();
+    
     drawGame(); // Draws the static board
     drawParticles(fxCtx); // Overlay fireworks on the absolute foreground
 
