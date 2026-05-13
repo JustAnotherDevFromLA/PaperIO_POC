@@ -451,3 +451,20 @@ button:active {
     padding: 4px 8px;
     margin: -4px -8px;
 }
+
+@keyframes winner-jump {
+    0%   { transform: translateY(0) scaleY(1); }
+    10%  { transform: translateY(0) scaleY(0.8); }
+    20%  { transform: translateY(0) scaleY(1); }
+    50%  { transform: translateY(-20px) rotate(180deg); }
+    80%  { transform: translateY(0) rotate(360deg) scaleY(1); }
+    90%  { transform: translateY(0) scaleY(0.8) rotate(360deg); }
+    100% { transform: translateY(0) scaleY(1) rotate(360deg); }
+}
+
+.winner-jump {
+    animation: winner-jump 2s infinite ease-in-out;
+    position: relative;
+    z-index: 1000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+}

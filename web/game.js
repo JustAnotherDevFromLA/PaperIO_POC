@@ -576,14 +576,18 @@ function quitToMenu() {
     leaderboard.classList.add("hidden");
     if (gameTimerHud) gameTimerHud.classList.add("hidden");
     
-    let winCrown = document.getElementById("win-crown-overlay");
-    if (winCrown) winCrown.style.display = "none";
+
 }
 
 quitToMenuBtn.addEventListener("click", quitToMenu);
 
 let actx = null;
 function initAudio() {
+    if (actx && (actx.state === 'closed' || actx.state === 'interrupted')) {
+        try { actx.close(); } catch(e) {}
+        actx = null;
+    }
+    
     if (!actx) {
         const AudioCtx = window.AudioContext || window.webkitAudioContext;
         if (AudioCtx) {
@@ -609,12 +613,16 @@ document.addEventListener('touchstart', initAudio, { passive: true });
 document.addEventListener('click', initAudio, { passive: true });
 document.addEventListener('keydown', initAudio, { passive: true });
 
-function playHitSound() {
-    if (!actx || !isSoundEnabled) return;
-    if (actx.state !== 'running') {
-        let p = actx.resume();
-        if (p !== undefined) p.catch(() => {});
+// Recover audio when switching tabs or waking up the device
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+        initAudio();
     }
+});
+
+function playHitSound() {
+    initAudio();
+    if (!actx || !isSoundEnabled) return;
 
     const time = actx.currentTime;
 
@@ -661,11 +669,8 @@ function playHitSound() {
     osc.stop(time + 0.1);
 }
 function playTurnSound() {
+    initAudio();
     if (!actx || !isSoundEnabled) return;
-    if (actx.state !== 'running') {
-        let p = actx.resume();
-        if (p !== undefined) p.catch(() => {});
-    }
 
     const osc = actx.createOscillator();
     const gainNode = actx.createGain();
@@ -686,11 +691,8 @@ function playTurnSound() {
     osc.stop(actx.currentTime + 0.05);
 }
 function playFireworkSound() {
+    initAudio();
     if (!actx || !isSoundEnabled) return;
-    if (actx.state !== 'running') {
-        let p = actx.resume();
-        if (p !== undefined) p.catch(() => {});
-    }
     
     // 500ms to 1000ms randomized buffer delay
     const delay = 0.5 + (Math.random() * 0.5);
@@ -965,9 +967,7 @@ function updateLeaderboardUI() {
         } else {
             square.classList.remove("dead");
             square.removeAttribute("id");
-            if (index === 0) {
-                newHTML = `<svg width="14" height="12" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); transform: translateY(1px);"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
-            }
+            newHTML = "";
         }
 
         if (square.dataset.cachedHTML !== newHTML) {
@@ -1553,14 +1553,9 @@ function die(playerWon = false) {
         rank.style.position = "relative";
         
         if (index === 0) {
-            rank.innerHTML = `<span style="position: relative; display: inline-block;">#1
-                <svg width="18" height="14" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: -8px; left: -3px; transform: rotate(-15deg); filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); z-index: 1;">
-                    <path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFCC00"/>
-                </svg>
-            </span>`;
-        } else {
-            rank.textContent = `#${index + 1}`;
+            rank.style.color = "#FFCC00";
         }
+        rank.textContent = `#${index + 1}`;
 
         const nameContainer = document.createElement("span");
         nameContainer.className = "leaderboard-name";
@@ -1576,6 +1571,14 @@ function die(playerWon = false) {
         colorSquare.style.marginRight = "6px";
         colorSquare.style.flexShrink = "0";
         colorSquare.style.boxShadow = "0 1px 2px rgba(0,0,0,0.3)";
+
+        if (index === 0) {
+            colorSquare.classList.add("winner-jump");
+            colorSquare.style.display = "flex";
+            colorSquare.style.justifyContent = "center";
+            colorSquare.style.alignItems = "center";
+            colorSquare.innerHTML = `<svg width="10" height="8" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); transform: translateY(1px);"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
+        }
 
         const nameText = document.createElement("span");
         nameText.textContent = p.name;
@@ -2074,47 +2077,7 @@ function drawGame(progress) {
             e.visualPos.y = prevY + (targetY - prevY) * progress;
         }
 
-        let isWinningPlayer = (!isPlaying && isWon && e.id === kingId);
-        
-        if (isWinningPlayer) {
-            let t = (performance.now() / 1000) % 2.0;
-            let jump = 0;
-            let rot = 0;
-            let scaleY_squash = 1.0;
-            
-            if (t < 0.2) {
-                let u = t / 0.2;
-                scaleY_squash = 1.0 - 0.2 * Math.sin(u * Math.PI);
-            } else if (t < 0.8) {
-                let u = (t - 0.2) / 0.6;
-                jump = Math.sin(u * Math.PI) * 40;
-                rot = u * Math.PI * 2;
-            } else if (t < 1.0) {
-                let u = (t - 0.8) / 0.2;
-                scaleY_squash = 1.0 - 0.2 * Math.sin(u * Math.PI);
-            }
-            
-            ctx.save();
-            let cx = e.visualPos.x + CELL_SIZE / 2;
-            let cy = e.visualPos.y + CELL_SIZE / 2 - jump;
-            
-            ctx.translate(cx, cy);
-            ctx.rotate(rot);
-            ctx.scale(1.0, scaleY_squash);
-            ctx.translate(-cx, -cy);
-            
-            ctx.fillStyle = e.color;
-            ctx.fillRect(e.visualPos.x, e.visualPos.y - jump, CELL_SIZE, CELL_SIZE);
-            
-            ctx.strokeStyle = "rgba(0,0,0,0.15)";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(e.visualPos.x, e.visualPos.y - jump, CELL_SIZE, CELL_SIZE);
-            
-            ctx.restore();
-            return;
-        }
-
-        ctx.save();
+        let isWinningPlayer = (!isPlaying && isWon && e.id === kingId);        ctx.save();
         
         if (grid[e.pos.x] && grid[e.pos.x][e.pos.y] === e.id) {
             // Simulated intense white glow (fast multi-rect)
@@ -2246,49 +2209,6 @@ function drawGame(progress) {
                 boardWrapper.dataset.lastTransform = newTransform;
             }
 
-            let winCrown = document.getElementById("win-crown-overlay");
-            if (winCrown) {
-                let king = entities.find(e => e.id === kingId);
-                if (king && !king.isDead) {
-                    let squareYOffset = 0;
-                    let crownToss = 0;
-
-                    if (!isPlaying && isWon) {
-                        let t = (performance.now() / 1000) % 2.0;
-                        if (t < 0.2) {
-                            let u = t / 0.2;
-                            squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
-                        } else if (t < 0.8) {
-                            let u = (t - 0.2) / 0.6;
-                            squareYOffset = -Math.sin(u * Math.PI) * 40;
-                        } else if (t < 1.0) {
-                            let u = (t - 0.8) / 0.2;
-                            squareYOffset = (0.2 * Math.sin(u * Math.PI)) * CELL_SIZE / 2;
-                        }
-
-                        // The user requested the crown to stay directly above the player square.
-                        // We removed the crownToss variable completely so it stays perfectly pinned.
-                    }
-
-                    // Use pure mathematical projection relative to board wrapper to eliminate bounding rect jitter
-                    let bwRaw = cachedBoardWidth;
-                    let bhRaw = cachedBoardHeight;
-                    let rawScaleX = (bwRaw - 16) / 800;
-                    let rawScaleY = (bhRaw - 16) / 800;
-
-                    let rawX = 8 + (king.visualPos.x + CELL_SIZE / 2) * rawScaleX;
-                    let rawY = 8 + (king.visualPos.y + squareYOffset - crownToss) * rawScaleY + (-2 * rawScaleY);
-
-                    let screenX = rawX * currentCamScale + currentCamOffsetX;
-                    let screenY = rawY * currentCamScale + currentCamOffsetY;
-                    let finalScaleX = rawScaleX * currentCamScale;
-
-                    winCrown.style.display = "block";
-                    winCrown.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) scale(${0.8 * finalScaleX})`;
-                } else {
-                    winCrown.style.display = "none";
-                }
-            }
         }
     }
 }
