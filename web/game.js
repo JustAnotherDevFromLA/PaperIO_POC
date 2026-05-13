@@ -231,9 +231,8 @@ resizeFxCanvas();
 async function loadGlobalLeaderboard() {
     try {
         const response = await fetch('/api/leaderboard');
-        if (response.ok) {
-            return await response.json();
-        }
+        if (!response.ok) throw new Error("API returned " + response.status);
+        return await response.json();
     } catch(e) {
         console.error("Failed to load global leaderboard", e);
     }
@@ -261,11 +260,12 @@ async function saveToGlobalLeaderboard(player, isWin) {
     };
     
     try {
-        await fetch('/api/leaderboard', {
+        const response = await fetch('/api/leaderboard', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
+        if (!response.ok) throw new Error("API returned " + response.status);
     } catch(e) {
         console.error("Failed to save to global leaderboard", e);
         // Fallback to local storage
