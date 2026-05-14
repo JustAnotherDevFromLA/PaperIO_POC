@@ -1628,7 +1628,8 @@ function die(playerWon = false) {
             colorSquare.style.display = "flex";
             colorSquare.style.justifyContent = "center";
             colorSquare.style.alignItems = "center";
-            colorSquare.innerHTML = `<svg width="10" height="8" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4)); transform: translateY(1px);"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#fff"/></svg>`;
+            // Position the yellow crown absolutely so it sits directly on top of the player square
+            colorSquare.innerHTML = `<svg width="14" height="12" viewBox="-9 -14 18 15" xmlns="http://www.w3.org/2000/svg" style="position: absolute; top: -10px; filter: drop-shadow(0px 1px 2px rgba(0,0,0,0.4));"><path d="M -7,0 L 7,0 L 9,-10 L 3.5,-4 L 0,-13 L -3.5,-4 L -9,-10 Z" fill="#FFD700" stroke="rgba(0,0,0,0.5)" stroke-width="1" stroke-linejoin="round"/></svg>`;
         }
 
         const nameText = document.createElement("span");
