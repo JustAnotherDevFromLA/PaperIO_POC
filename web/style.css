@@ -417,15 +417,16 @@ button:active {
 
 .playing-cursor-hide {
     cursor: none !important;
-}/* Legacy Leaderboard Classes for Game Over Screen */
-.leaderboard-entry {
+}.leaderboard-entry {
     display: grid;
-    grid-template-columns: 20px 1fr 75px;
+    grid-template-columns: 24px 1fr 85px;
     align-items: center;
     gap: 8px;
     font-size: 13px;
     font-weight: bold;
-    padding: 4px 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    white-space: nowrap;
 }
 
 .leaderboard-rank {
@@ -443,6 +444,7 @@ button:active {
     text-align: right;
     color: #333;
     font-variant-numeric: tabular-nums;
+    white-space: nowrap;
 }
 
 .highlighted-player {

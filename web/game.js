@@ -1596,7 +1596,10 @@ function die(playerWon = false) {
     players.forEach((p, index) => {
         const entry = document.createElement("div");
         entry.className = "leaderboard-entry";
-        if (p.isReal) entry.classList.add("highlighted-player");
+        entry.style.background = index % 2 === 0 ? "rgba(0,0,0,0.03)" : "rgba(0,0,0,0.06)";
+        if (p.isReal) {
+            entry.style.background = "rgba(0, 0, 0, 0.08)";
+        }
 
         const rank = document.createElement("span");
         rank.className = "leaderboard-rank";
