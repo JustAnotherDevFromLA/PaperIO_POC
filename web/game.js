@@ -2133,22 +2133,54 @@ function drawGame(progress) {
             e.visualPos.y = prevY + (targetY - prevY) * progress;
         }
 
-        let isWinningPlayer = (!isPlaying && isWon && e.id === kingId);        ctx.save();
+        let isWinningPlayer = (!isPlaying && isWon && e.id === kingId);
+        
+        let jump = 0;
+        let rot = 0;
+        let scaleY_squash = 1.0;
+        
+        if (isWinningPlayer) {
+            let t = (performance.now() / 1000) % 2.0;
+            if (t < 0.2) {
+                let u = t / 0.2;
+                scaleY_squash = 1.0 - 0.2 * Math.sin(u * Math.PI);
+            } else if (t < 0.8) {
+                let u = (t - 0.2) / 0.6;
+                jump = Math.sin(u * Math.PI) * 40;
+                rot = u * Math.PI * 2;
+            } else if (t < 1.0) {
+                let u = (t - 0.8) / 0.2;
+                scaleY_squash = 1.0 - 0.2 * Math.sin(u * Math.PI);
+            }
+        }
+        
+        ctx.save();
+        
+        if (isWinningPlayer) {
+            let cx = e.visualPos.x + CELL_SIZE / 2;
+            let cy = e.visualPos.y + CELL_SIZE / 2 - jump;
+            ctx.translate(cx, cy);
+            ctx.rotate(rot);
+            ctx.scale(1.0, scaleY_squash);
+            ctx.translate(-cx, -cy);
+        }
+        
+        let drawY = e.visualPos.y - jump;
         
         if (grid[e.pos.x] && grid[e.pos.x][e.pos.y] === e.id) {
             // Simulated intense white glow (fast multi-rect)
             ctx.fillStyle = "rgba(255, 255, 255, 0.2)";
-            ctx.fillRect(e.visualPos.x - 4, e.visualPos.y - 4, CELL_SIZE + 8, CELL_SIZE + 8);
+            ctx.fillRect(e.visualPos.x - 4, drawY - 4, CELL_SIZE + 8, CELL_SIZE + 8);
             ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
-            ctx.fillRect(e.visualPos.x - 2, e.visualPos.y - 2, CELL_SIZE + 4, CELL_SIZE + 4);
+            ctx.fillRect(e.visualPos.x - 2, drawY - 2, CELL_SIZE + 4, CELL_SIZE + 4);
         }
         
         ctx.fillStyle = e.color;
-        ctx.fillRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
+        ctx.fillRect(e.visualPos.x, drawY, CELL_SIZE, CELL_SIZE);
         
         ctx.strokeStyle = "rgba(0,0,0,0.15)";
         ctx.lineWidth = 1;
-        ctx.strokeRect(e.visualPos.x, e.visualPos.y, CELL_SIZE, CELL_SIZE);
+        ctx.strokeRect(e.visualPos.x, drawY, CELL_SIZE, CELL_SIZE);
         
         ctx.restore();
     });
@@ -2156,10 +2188,20 @@ function drawGame(progress) {
     let kingCrown = document.getElementById("king-crown");
     if (kingCrown) {
         let kingEnt = entities.find(e => e.id === kingId);
-        if (kingEnt && !kingEnt.isDead && isPlaying) {
+        if (kingEnt && !kingEnt.isDead && (isPlaying || isWon)) {
             kingCrown.style.display = "block";
+            
+            let jump = 0;
+            if (!isPlaying && isWon) {
+                let t = (performance.now() / 1000) % 2.0;
+                if (t >= 0.2 && t < 0.8) {
+                    let u = (t - 0.2) / 0.6;
+                    jump = Math.sin(u * Math.PI) * 40;
+                }
+            }
+            
             kingCrown.style.left = `calc(8px + ${(kingEnt.visualPos.x + CELL_SIZE / 2) / 800} * (100% - 16px))`;
-            kingCrown.style.top = `calc(8px + ${kingEnt.visualPos.y / 800} * (100% - 16px))`;
+            kingCrown.style.top = `calc(8px + ${(kingEnt.visualPos.y - jump) / 800} * (100% - 16px))`;
         } else {
             kingCrown.style.display = "none";
         }
