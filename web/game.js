@@ -2158,8 +2158,8 @@ function drawGame(progress) {
         let kingEnt = entities.find(e => e.id === kingId);
         if (kingEnt && !kingEnt.isDead && isPlaying) {
             kingCrown.style.display = "block";
-            kingCrown.style.left = (kingEnt.visualPos.x + CELL_SIZE / 2) + "px";
-            kingCrown.style.top = kingEnt.visualPos.y + "px";
+            kingCrown.style.left = `calc(8px + ${(kingEnt.visualPos.x + CELL_SIZE / 2) / 800} * (100% - 16px))`;
+            kingCrown.style.top = `calc(8px + ${kingEnt.visualPos.y / 800} * (100% - 16px))`;
         } else {
             kingCrown.style.display = "none";
         }
